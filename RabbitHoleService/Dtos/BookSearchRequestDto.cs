@@ -61,6 +61,7 @@ namespace RabbitHoleService.Dtos
         /// <summary>
         /// Gets the genres.
         /// </summary>
+        [ModelBinder(BinderType = typeof(GenreListModelBinder))]
         public HashSet<GenreType>? Genres { get; init; }
     }
 }
