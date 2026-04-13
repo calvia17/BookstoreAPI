@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NuGet.Protocol.Core.Types;
+using RabbitHoleService.Data;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
@@ -16,15 +17,15 @@ namespace RabbitHoleService.Services
     /// </summary>
     public class BookService : IBookService
     {
-        private readonly IBookRepository bookRepository;
+        private readonly IUnitOfWork unitOfWork;
 
         /// <summary>
         /// Initializes the book service.
         /// </summary>
-        /// <param name="bookRepository">The book repository.</param>
-        public BookService(IBookRepository bookRepository)
+        /// <param name="unitOfWork">The unit of work.</param>
+        public BookService(IUnitOfWork unitOfWork)
         {
-            this.bookRepository = bookRepository;
+            this.unitOfWork = unitOfWork;
         }
 
         /// <summary>
@@ -33,7 +34,7 @@ namespace RabbitHoleService.Services
         /// <returns>The books.</returns>
         public async Task<IEnumerable<BookDto>> GetAllAsync()
         {
-            var books =  await this.bookRepository.GetAllAsync();
+            var books =  await this.unitOfWork.Books.GetAllAsync();
             var dtos = books.Select(x => BookModelDtoMapper.ToDto(x)).ToList();
             return dtos;
         }
@@ -50,7 +51,7 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var book = await this.bookRepository.GetAsync(id);
+            var book = await this.unitOfWork.Books.GetAsync(id);
             if (book == null)
             {
                 throw new BookNotFoundException(id);
@@ -71,7 +72,7 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("One or more invalid IDs provided.", nameof(ids));
             }
 
-            var books = await this.bookRepository.GetAsync(ids);
+            var books = await this.unitOfWork.Books.GetAsync(ids);
             return books.Select(BookModelDtoMapper.ToDto).ToList();
         }
 
@@ -84,15 +85,17 @@ namespace RabbitHoleService.Services
         {
             ArgumentNullException.ThrowIfNull(newBookData);
 
-            var duplicateBook = await this.bookRepository.GetByIsbnAsync(newBookData.Isbn);
+            var duplicateBook = await this.unitOfWork.Books.GetByIsbnAsync(newBookData.Isbn);
             if (duplicateBook != null)
             {
                 throw new BookAlreadyExistsException(new ExistingBook(duplicateBook.Id, duplicateBook.Isbn, duplicateBook.Name, duplicateBook.Author));
             }
 
             var bookToCreate = BookModelDtoMapper.ToModel(newBookData);
-            var createdBook = await this.bookRepository.AddAsync(bookToCreate);
-            return BookModelDtoMapper.ToDto(createdBook);
+            this.unitOfWork.Books.Add(bookToCreate);
+            await this.unitOfWork.SaveChangesAsync();
+            var createdBook = await this.unitOfWork.Books.GetAsync(bookToCreate.Id);
+            return BookModelDtoMapper.ToDto(createdBook!);
         }
 
         /// <summary>
@@ -103,6 +106,11 @@ namespace RabbitHoleService.Services
         public async Task<IEnumerable<BookDto>> CreateMultipleAsync(IEnumerable<CreateBookDto> newBooksData)
         {
             ArgumentNullException.ThrowIfNull(newBooksData);
+
+            if (!newBooksData.Any())
+            {
+                return Enumerable.Empty<BookDto>();
+            }
 
             var isbns = new HashSet<string>();
             var duplicates = new HashSet<string>();
@@ -118,7 +126,7 @@ namespace RabbitHoleService.Services
                 throw new DuplicateBookInputException(duplicates);
             }
 
-            var duplicateBooks = await this.bookRepository.GetByIsbnsAsync(isbns);
+            var duplicateBooks = await this.unitOfWork.Books.GetByIsbnsAsync(isbns);
             if (duplicateBooks.Any())
             {
                 var conflicts = duplicateBooks.Select(db => new ExistingBook(db.Id, db.Isbn, db.Name, db.Author)).ToList();
@@ -126,7 +134,10 @@ namespace RabbitHoleService.Services
             }
 
             var booksToCreate = newBooksData.Select(BookModelDtoMapper.ToModel).ToList();
-            var createdBooks = await this.bookRepository.AddMultipleAsync(booksToCreate);
+            this.unitOfWork.Books.AddMultiple(booksToCreate);
+            await this.unitOfWork.SaveChangesAsync();
+            var createdBookIds = booksToCreate.Select(b => b.Id).ToHashSet();
+            var createdBooks = await this.unitOfWork.Books.GetAsync(createdBookIds);
             return createdBooks.Select(BookModelDtoMapper.ToDto).ToList();
         }
 
@@ -145,14 +156,14 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var book = await this.bookRepository.GetAsync(id, true);
+            var book = await this.unitOfWork.Books.GetAsync(id, true);
             if (book == null)
             {
                 throw new BookNotFoundException(id);
             }
 
             UpdateBookProperties(updateData, book);
-            await this.bookRepository.UpdateAsync(book);
+            await this.unitOfWork.SaveChangesAsync();
         }
 
         /// <summary>
@@ -183,7 +194,7 @@ namespace RabbitHoleService.Services
                 throw new DuplicateBookInputException(duplicateBookIds);
             }
 
-            var books = await this.bookRepository.GetAsync(bookIds, true);
+            var books = await this.unitOfWork.Books.GetAsync(bookIds, true);
             var notFoundBookIds = bookIds.Except(books.Select(b => b.Id)).ToList();
             if (notFoundBookIds.Count > 0)
             {
@@ -199,7 +210,7 @@ namespace RabbitHoleService.Services
                 }
             }
 
-            await this.bookRepository.UpdateMultipleAsync(books);
+            await this.unitOfWork.SaveChangesAsync();
         }
 
         /// <summary>
@@ -214,13 +225,14 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var book = await this.bookRepository.GetAsync(id);
+            var book = await this.unitOfWork.Books.GetAsync(id);
             if (book == null)
             {
                 throw new BookNotFoundException(id);
             }
 
-            await this.bookRepository.DeleteAsync(book);
+            this.unitOfWork.Books.Delete(book);
+            await this.unitOfWork.SaveChangesAsync();
         }
 
         /// <summary>
@@ -231,7 +243,7 @@ namespace RabbitHoleService.Services
         public async Task<IEnumerable<BookDto>> FindBooksAsync(BookSearchRequestDto request)
         {
             ArgumentNullException.ThrowIfNull(request, nameof(request));
-            var books = await this.bookRepository.FindBooksAsync(request.Isbn, request.Name, request.Author, request.MinimumCost, request.MaximumCost, request.Genres);
+            var books = await this.unitOfWork.Books.FindBooksAsync(request.Isbn, request.Name, request.Author, request.MinimumCost, request.MaximumCost, request.Genres);
             return books.Select(BookModelDtoMapper.ToDto).ToList();
         }
 

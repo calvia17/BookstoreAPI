@@ -54,38 +54,20 @@ namespace RabbitHoleService.Repositories
         /// Creates a new customer.
         /// </summary>
         /// <param name="newCustomerData">The new customer.</param>
-        /// <returns>The customer.</returns>
-        public async Task<Customer> AddAsync(Customer newCustomerData)
+        public void Add(Customer newCustomerData)
         {
             ArgumentNullException.ThrowIfNull(newCustomerData, nameof(newCustomerData));
-
-            var createdCustomer = this.context.Customers.Add(newCustomerData);
-            await this.context.SaveChangesAsync();
-            return createdCustomer.Entity;
-        }
-
-        /// <summary>
-        /// Updates an existing customer.
-        /// </summary>
-        /// <param name="updatedCustomer">The updated customer.</param>
-        /// <returns>The task.</returns>
-        public async Task UpdateAsync(Customer updatedCustomer)
-        {
-            ArgumentNullException.ThrowIfNull(updatedCustomer, nameof(updatedCustomer));
-            await this.context.SaveChangesAsync();
+            this.context.Customers.Add(newCustomerData);
         }
 
         /// <summary>
         /// Deletes a customer.
         /// </summary>
         /// <param name="customer">The customer.</param>
-        /// <returns>The task.</returns>
-        public async Task DeleteAsync(Customer customer)
+        public void Delete(Customer customer)
         {
             ArgumentNullException.ThrowIfNull(customer, nameof(customer));
-
             this.context.Customers.Remove(customer);
-            await this.context.SaveChangesAsync();
         }
 
         /// <summary>

@@ -27,22 +27,13 @@ namespace RabbitHoleService.Repositories
         /// Creates a new customer.
         /// </summary>
         /// <param name="newCustomerData">The new customer data.</param>
-        /// <returns>The customer.</returns>
-        Task<Customer> AddAsync(Customer newCustomerData);
-
-        /// <summary>
-        /// Updates an existing customer.
-        /// </summary>
-        /// <param name="updateData">The update customer data.</param>
-        /// <returns>A task that represents the update operation.</returns>
-        Task UpdateAsync(Customer updateData);
+        void Add(Customer newCustomerData);
 
         /// <summary>
         /// Deletes a customer.
         /// </summary>
         /// <param name="cusotmer">The cusotmer.</param>
-        /// <returns>A task that represents the delete operation.</returns>
-        Task DeleteAsync(Customer customer);
+        void Delete(Customer customer);
 
         /// <summary>
         /// Finds customers that match a certain criteria.

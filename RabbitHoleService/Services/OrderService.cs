@@ -1,6 +1,7 @@
 ﻿using Humanizer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using RabbitHoleService.Data;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
@@ -15,24 +16,15 @@ namespace RabbitHoleService.Services
     /// </summary>
     public partial class OrderService : IOrderService
     {
-        private readonly IOrderRepository orderRepository;
-        private readonly IBookService bookService;
-        private readonly ICustomerService customerService;
+        private readonly IUnitOfWork unitOfWork;
 
         /// <summary>
         /// Initializes the order service.
         /// </summary>
-        /// <param name="orderRepository">The order repository.</param>
-        /// <param name="bookService">The book service.</param>
-        /// <param name="customerService">The customer service.</param>
-        public OrderService(
-            IOrderRepository orderRepository,
-            IBookService bookService,
-            ICustomerService customerService)
+        /// <param name="unitOfWork">The unit of work.</param>
+        public OrderService(IUnitOfWork unitOfWork)
         {
-            this.orderRepository = orderRepository;
-            this.bookService = bookService;
-            this.customerService = customerService;
+            this.unitOfWork = unitOfWork;
         }
 
         /// <summary>
@@ -41,7 +33,7 @@ namespace RabbitHoleService.Services
         /// <returns>The orders.</returns>
         public async Task<IEnumerable<OrderDto>> GetAllAsync()
         {
-            var orders = await this.orderRepository.GetAllAsync();
+            var orders = await this.unitOfWork.Orders.GetAllAsync();
             var dtos = orders.Select(x => OrderModelDtoMapper.ToDto(x)).ToList();
             return dtos;
         }
@@ -58,7 +50,7 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var order = await this.orderRepository.GetAsync(id);
+            var order = await this.unitOfWork.Orders.GetAsync(id);
             if (order == null)
             {
                 throw new OrderNotFoundException(id);
@@ -80,7 +72,7 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(customerId));
             }
 
-            var orders = await this.orderRepository.GetByCustomerIdAsync(customerId);
+            var orders = await this.unitOfWork.Orders.GetByCustomerIdAsync(customerId);
             return orders.Select(x => OrderModelDtoMapper.ToDto(x));
         }
 
@@ -101,7 +93,7 @@ namespace RabbitHoleService.Services
                 return existingOrder;
             }
 
-            var customer = await this.customerService.GetAsync(newOrderData.CustomerId!.Value);
+            var customer = await this.unitOfWork.Customers.GetAsync(newOrderData.CustomerId!.Value);
             if (customer == null)
             {
                 throw new CustomerNotFoundException(newOrderData.CustomerId!.Value);
@@ -130,7 +122,7 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var order = await this.orderRepository.GetAsync(id, true);
+            var order = await this.unitOfWork.Orders.GetAsync(id, true);
             if (order == null)
             {
                 throw new OrderNotFoundException(id);
@@ -141,52 +133,48 @@ namespace RabbitHoleService.Services
                 throw new InvalidOrderStatusChangeException(order.Id, order.Status, updateData.Status!.Value);
             }
 
-            await this.orderRepository.UpdateAsync(order);
+            await this.unitOfWork.SaveChangesAsync();
         }
 
-        private async Task<OrderDto> ProcessTransaction(Guid idempotencyKey, CreateOrderDto newOrderData, Dictionary<Guid, BookDto> booksMap)
+        private async Task<OrderDto> ProcessTransaction(Guid idempotencyKey, CreateOrderDto newOrderData, Dictionary<Guid, Book> booksMap)
         {
-            await using (var transaction = await this.orderRepository.BeginTransactionAsync())
+            await using (var transaction = await this.unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
-                    // Create the order
                     var orderToCreate = OrderModelDtoMapper.ToModel(newOrderData, idempotencyKey);
 
-                    // Add books
-                    var bookStockUpdates = new Dictionary<Guid, int>();
+                    // Add books to the order and update stock
+                    var bookIdsToUpdate = newOrderData.OrderItems.Select(x => x.BookId!.Value).ToHashSet();
+                    var booksToUpdate = await this.unitOfWork.Books.GetAsync(bookIdsToUpdate, true);
+                    var booksToUpdateMap = booksToUpdate.ToDictionary(x => x.Id);
                     foreach (var item in newOrderData.OrderItems)
                     {
                         if (booksMap.TryGetValue(item.BookId!.Value, out var book))
                         {
-                            var bookModel = BookModelDtoMapper.ToModel(book);
-                            orderToCreate.AddBook(bookModel, item.Quantity!.Value);
-                            bookStockUpdates[book.Id] = book.Stock - item.Quantity!.Value;
+                            orderToCreate.AddBook(book, item.Quantity!.Value);
+                            booksToUpdateMap[book.Id].Stock -= item.Quantity!.Value;
                         }
                     }
 
-                    var createdOrder = await this.orderRepository.AddAsync(orderToCreate);
+                    this.unitOfWork.Orders.Add(orderToCreate);
+                    await this.unitOfWork.SaveChangesAsync();
+                    var createdOrder = await this.unitOfWork.Orders.GetAsync(orderToCreate.Id, true);
+                    createdOrder!.UpdateStatus(OrderStatus.Processed, false);
+                    await this.unitOfWork.SaveChangesAsync();
+                    await transaction.CommitAsync();
 
-                    // Update stock
-                    var bookUpdateDtos = bookStockUpdates.Select(x => new BookData(x.Key, new UpdateBookDto() { Stock = x.Value }));
-                    await this.bookService.UpdateMultipleAsync(new UpdateMultipleBooksDto() { Books = bookUpdateDtos });
-
-                    // Update status
-                    createdOrder.UpdateStatus(OrderStatus.Processed, false);
-                    await this.orderRepository.UpdateAsync(createdOrder);
-
-                    await this.orderRepository.CommitTransactionAsync(transaction);
                     return OrderModelDtoMapper.ToDto(createdOrder);
                 }
                 catch
                 {
-                    await this.orderRepository.RollbackTransactionAsync(transaction);
+                    await transaction.RollbackAsync();
                     throw;
                 }
             }
         }
 
-        private static void ValidateStock(CreateOrderDto newOrderData, Dictionary<Guid, BookDto> booksMap)
+        private static void ValidateStock(CreateOrderDto newOrderData, Dictionary<Guid, Book> booksMap)
         {
             // Check if there is sufficient stock
             var insufficientStockItems = new List<InsufficientStockItem>();
@@ -207,7 +195,7 @@ namespace RabbitHoleService.Services
             }
         }
 
-        private async Task<IEnumerable<BookDto>> ValidateBooks(CreateOrderDto newOrderData)
+        private async Task<IEnumerable<Book>> ValidateBooks(CreateOrderDto newOrderData)
         {
             // Check for duplicate books in the order
             var bookIds = new HashSet<Guid>();
@@ -222,13 +210,13 @@ namespace RabbitHoleService.Services
 
             if (duplicateBookIds.Count > 0)
             {
-                var duplicateBooks = await this.bookService.GetAsync(duplicateBookIds);
+                var duplicateBooks = await this.unitOfWork.Books.GetAsync(duplicateBookIds);
                 var duplicateItems = duplicateBooks.Select(book => new DuplicateItem(book.Id, book.Isbn, book.Name));
                 throw new DuplicateItemException(duplicateItems);
             }
 
             // Check if all the books exist
-            var books = await this.bookService.GetAsync(bookIds);
+            var books = await this.unitOfWork.Books.GetAsync(bookIds);
             var notFoundBookIds = bookIds.Except(books.Select(x => x.Id)).ToList();
             if (notFoundBookIds.Count > 0)
             {
@@ -247,7 +235,7 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid idempotency key provided.", nameof(idempotencyKey));
             }
 
-            var duplicateOrder = await this.orderRepository.GetByIdempotencyKeyAsync(idempotencyKeyValue);
+            var duplicateOrder = await this.unitOfWork.Orders.GetByIdempotencyKeyAsync(idempotencyKeyValue);
             if (duplicateOrder != null)
             {
                 if (duplicateOrder.CreatedAt <= DateTime.UtcNow.AddMinutes(-5))

@@ -1,4 +1,5 @@
-﻿using RabbitHoleService.Dtos;
+﻿using RabbitHoleService.Data;
+using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
 using RabbitHoleService.Objects;
@@ -11,18 +12,15 @@ namespace RabbitHoleService.Services
     /// </summary>
     public class GenreService : IGenreService
     {
-        private readonly IGenreRepository genreRepository;
-        private readonly IBookRepository bookRepository;
+        private readonly IUnitOfWork unitOfWork;
 
         /// <summary>
         /// Initializes the genre service.
         /// </summary>
-        /// <param name="genreRepository">The genre repository.</param>
-        /// <param name="bookRepository">The book repository.</param>
-        public GenreService(IGenreRepository genreRepository, IBookRepository bookRepository)
+        /// <param name="unitOfWork">The unit of work.</param>
+        public GenreService(IUnitOfWork unitOfWork)
         {
-            this.genreRepository = genreRepository;
-            this.bookRepository = bookRepository;
+            this.unitOfWork = unitOfWork;
         }
 
         /// <summary>
@@ -31,7 +29,7 @@ namespace RabbitHoleService.Services
         /// <returns>The genres.</returns>
         public async Task<IEnumerable<GenreDto>> GetAllAsync()
         {
-            var genres = await this.genreRepository.GetAllAsync();
+            var genres = await this.unitOfWork.Genres.GetAllAsync();
             var dtos = genres.Select(x => GenreModelDtoMapper.ToDto(x)).ToList();
             return dtos;
         }

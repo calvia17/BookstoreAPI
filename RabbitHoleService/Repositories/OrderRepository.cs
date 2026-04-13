@@ -22,37 +22,6 @@ namespace RabbitHoleService.Repositories
         }
 
         /// <summary>
-        /// Begins the transaction.
-        /// </summary>
-        /// <returns>A task representing the transaction start.</returns>
-        public async Task<IDbContextTransaction> BeginTransactionAsync()
-        {
-            return await this.context.Database.BeginTransactionAsync();
-        }
-
-        /// <summary>
-        /// Commits the transaction.
-        /// </summary>
-        /// <param name="transaction">The transaction.</param>
-        /// <returns>A task representing the transaction commit.</returns>
-        public async Task CommitTransactionAsync(IDbContextTransaction transaction)
-        {
-            ArgumentNullException.ThrowIfNull(transaction);
-            await transaction.CommitAsync();
-        }
-
-        /// <summary>
-        /// Rolls back the transaction.
-        /// </summary>
-        /// <param name="transaction">The transaction.</param>
-        /// <returns>A task representing the transaction rollback.</returns>
-        public async Task RollbackTransactionAsync(IDbContextTransaction transaction)
-        {
-            ArgumentNullException.ThrowIfNull(transaction);
-            await transaction.RollbackAsync();
-        }
-
-        /// <summary>
         /// Gets all the orders.
         /// </summary>
         /// <returns>The orders.</returns>
@@ -122,28 +91,10 @@ namespace RabbitHoleService.Repositories
         /// Creates a new order.
         /// </summary>
         /// <param name="newOrderData">The new order data.</param>
-        /// <returns>The order.</returns>
-        public async Task<Order> AddAsync(Order newOrderData)
+        public void Add(Order newOrderData)
         {
             ArgumentNullException.ThrowIfNull(newOrderData);
-
-            var createdOrder = this.context.Orders.Add(newOrderData);
-            await this.context.SaveChangesAsync();
-            return await this.context.Orders
-                        .Include(o => o.BookOrders)
-                            .ThenInclude(bo => bo.Book)
-                        .FirstAsync(o => o.Id == newOrderData.Id);
-        }
-
-        /// <summary>
-        /// Updates an existing order.
-        /// </summary>
-        /// <param name="updateData">The update order data.</param>
-        /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateAsync(Order updateData)
-        {
-            ArgumentNullException.ThrowIfNull(updateData);
-            await this.context.SaveChangesAsync();
+            this.context.Orders.Add(newOrderData);
         }
     }
 }

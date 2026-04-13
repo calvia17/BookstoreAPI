@@ -28,7 +28,7 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Initialises the book controller.
         /// </summary>
-        /// <param name="bookService">The book service..</param>
+        /// <param name="bookService">The book service.</param>
         public BookController(IBookService bookService)
         {
             this.bookService = bookService;

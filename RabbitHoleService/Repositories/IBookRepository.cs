@@ -48,37 +48,19 @@ namespace RabbitHoleService.Repositories
         /// <summary>
         /// Creates a new book.
         /// </summary>
-        /// <param name="newBookData">The new book data.</param>
-        /// <returns>The book.</returns>
-        Task<Book> AddAsync(Book newBookData);
+        void Add(Book newBookData);
 
         /// <summary>
         /// Creates multiple books.
         /// </summary>
         /// <param name="newBooksData">The new books data.</param>
-        /// <returns>The added books.</returns>
-        Task<IEnumerable<Book>> AddMultipleAsync(IEnumerable<Book> newBooksData);
-
-        /// <summary>
-        /// Updates an existing book.
-        /// </summary>
-        /// <param name="updateData">The update book data.</param>
-        /// <returns>A task that represents the update operation.</returns>
-        Task UpdateAsync(Book updateData);
-
-        /// <summary>
-        /// Updates multiple books.
-        /// </summary>
-        /// <param name="updateData">The data to update.</param>
-        /// <returns>A task that represents the update operation.</returns>
-        Task UpdateMultipleAsync(IEnumerable<Book> updateData);
+        void AddMultiple(IEnumerable<Book> newBooksData);
 
         /// <summary>
         /// Deletes a book.
         /// </summary>
         /// <param name="book">The book.</param>
-        /// <returns>A task that represents the delete operation.</returns>
-        Task DeleteAsync(Book book);
+        void Delete(Book book);
 
         /// <summary>
         /// Finds books that match a certain criteria.

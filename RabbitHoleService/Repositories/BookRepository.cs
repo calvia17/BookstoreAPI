@@ -113,69 +113,30 @@ namespace RabbitHoleService.Repositories
         /// Creates a new book.
         /// </summary>
         /// <param name="newBookData">The new book.</param>
-        /// <returns>The book.</returns>
-        public async Task<Book> AddAsync(Book newBookData)
+        public void Add(Book newBookData)
         {
             ArgumentNullException.ThrowIfNull(newBookData);
-
-            var createdBook = this.context.Books.Add(newBookData);
-            await this.context.SaveChangesAsync();
-            return await this.context.Books
-                        .Include(b => b.BookGenres)
-                        .FirstAsync(b => b.Id == newBookData.Id);
+            this.context.Books.Add(newBookData);
         }
 
         /// <summary>
         /// Creates multiple books.
         /// </summary>
         /// <param name="newBooksData">The new books data.</param>
-        /// <returns>The added books.</returns>
-        public async Task<IEnumerable<Book>> AddMultipleAsync(IEnumerable<Book> newBooksData)
+        public void AddMultiple(IEnumerable<Book> newBooksData)
         {
             ArgumentNullException.ThrowIfNull(newBooksData);
-
             this.context.Books.AddRange(newBooksData);
-            await this.context.SaveChangesAsync();
-            var createdBookIds = newBooksData.Select(b => b.Id).ToHashSet();
-            return await this.context.Books
-                        .Include(b => b.BookGenres)
-                        .Where(b => createdBookIds.Contains(b.Id))
-                        .ToListAsync();
-        }
-
-        /// <summary>
-        /// Updates an existing book.
-        /// </summary>
-        /// <param name="updateData">The update data.</param>
-        /// <returns>The task.</returns>
-        public async Task UpdateAsync(Book updateData)
-        {
-            ArgumentNullException.ThrowIfNull(updateData);
-            await this.context.SaveChangesAsync();
-        }
-
-        /// <summary>
-        /// Updates multiple books.
-        /// </summary>
-        /// <param name="updateData">The data to update.</param>
-        /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateMultipleAsync(IEnumerable<Book> updateData)
-        {
-            ArgumentNullException.ThrowIfNull(updateData);
-            await this.context.SaveChangesAsync();
         }
 
         /// <summary>
         /// Deletes a book.
         /// </summary>
         /// <param name="book">The book.</param>
-        /// <returns>The task.</returns>
-        public async Task DeleteAsync(Book book)
+        public void Delete(Book book)
         {
             ArgumentNullException.ThrowIfNull(book);
-
             this.context.Books.Remove(book);
-            await this.context.SaveChangesAsync();
         }
 
         /// <summary>
