@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using RabbitHoleService.Dtos;
 using RabbitHoleService.Models;
 using RabbitHoleService.Objects;
 
@@ -51,6 +50,24 @@ namespace RabbitHoleService.Repositories
         }
 
         /// <summary>
+        /// Gets the customer by the user id.
+        /// </summary>
+        /// <param name="userId">The user id.</param>
+        /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <returns>The customer.</returns>
+        public async Task<Customer?> GetByUserIdAsync(string userId, bool trackChanges = false)
+        {
+            IQueryable<Customer> customersQuery = this.context.Customers;
+            if (!trackChanges)
+            {
+                customersQuery = customersQuery.AsNoTracking();
+            }
+
+            var customer = await customersQuery.FirstOrDefaultAsync(c => c.UserId == userId);
+            return customer;
+        }
+
+        /// <summary>
         /// Creates a new customer.
         /// </summary>
         /// <param name="newCustomerData">The new customer.</param>
@@ -76,10 +93,16 @@ namespace RabbitHoleService.Repositories
         /// <param name="email">The name.</param>
         /// <param name="name">The phone.</param>
         /// <param name="phone">The email.</param>
+        /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
         /// <returns>The customers.</returns>
-        public async Task<IEnumerable<Customer>> FindCustomersAsync(string? name, string? phone, string? email)
+        public async Task<List<Customer>> FindCustomersAsync(string? name, string? phone, string? email, bool trackChanges = false)
         {
-            var customers = this.context.Customers.AsNoTracking();
+            IQueryable<Customer> customers = this.context.Customers;
+            if (!trackChanges)
+            {
+                customers = customers.AsNoTracking();
+            }
+
             if (!string.IsNullOrEmpty(name))
             {
                 customers = customers.Where(c => c.Name.StartsWith(name));

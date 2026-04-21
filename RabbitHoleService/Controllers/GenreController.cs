@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RabbitHoleService.Dtos;
-using RabbitHoleService.Exceptions;
-using RabbitHoleService.Objects;
 using RabbitHoleService.Services;
 
 namespace RabbitHoleService.Controllers
@@ -29,7 +27,9 @@ namespace RabbitHoleService.Controllers
         /// Gets all the genres.
         /// </summary>
         /// <returns>The genres.</returns>
+        [AllowAnonymous]
         [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<GenreDto>>> GetAllGenres()
         {
             var genres = await this.genreService.GetAllAsync();

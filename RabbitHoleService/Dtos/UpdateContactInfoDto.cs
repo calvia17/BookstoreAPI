@@ -3,9 +3,9 @@
 namespace RabbitHoleService.Dtos
 {
     /// <summary>
-    /// The update customer dto.
+    /// The update contact information dto.
     /// </summary>
-    public class UpdateCustomerDto
+    public class UpdateContactInfoDto
     {
         private string? name;
         private string? email;

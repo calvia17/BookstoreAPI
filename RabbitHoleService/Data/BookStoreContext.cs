@@ -1,17 +1,14 @@
-﻿using RabbitHoleService.Dtos;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RabbitHoleService.Objects;
 using System.Text.RegularExpressions;
 
 namespace RabbitHoleService.Models
 {
-    using Humanizer;
-    using Microsoft.EntityFrameworkCore;
-    using RabbitHoleService.Objects;
-
     /// <summary>
     /// The book store database context.
     /// </summary>
-    public partial class BookStoreContext : DbContext
+    public partial class BookStoreContext : IdentityDbContext<ApplicationUser>
     {
         public BookStoreContext(DbContextOptions<BookStoreContext> options)
         : base(options)
@@ -39,13 +36,16 @@ namespace RabbitHoleService.Models
         public DbSet<Genre> Genres { get; set; }
 
         /// <summary>
-        /// Gets or sets the book genres.
+        /// Gets or sets the refresh tokens.
         /// </summary>
-        public DbSet<BookGenre> BookGenres { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<ApplicationUser>().HasIndex(u => u.PhoneNumber).IsUnique();
+            modelBuilder.Entity<ApplicationUser>().Property(u => u.IsDeleted).IsRequired();
 
             modelBuilder.Entity<Book>().HasKey(b => b.Id);
             modelBuilder.Entity<Book>().Property(b => b.Name).HasMaxLength(250).IsRequired();
@@ -58,6 +58,8 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<Book>().Property(b => b.Stock).IsRequired();
 
             modelBuilder.Entity<Customer>().HasKey(c => c.Id);
+            modelBuilder.Entity<Customer>().HasOne(c => c.User).WithOne().HasForeignKey<Customer>(c => c.UserId).IsRequired().OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Customer>().HasIndex(c => c.UserId).IsUnique().HasFilter("[UserId] IS NOT NULL").HasDatabaseName("Customers_UserId");
             modelBuilder.Entity<Customer>().Property(c => c.Name).HasMaxLength(200).IsRequired();
             modelBuilder.Entity<Customer>().HasIndex(c => c.Name).HasDatabaseName("Customers_Name");
             modelBuilder.Entity<Customer>().Property(c => c.PhoneNumber).HasMaxLength(20).IsRequired();
@@ -86,6 +88,12 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<BookOrder>().Property(bo => bo.PriceAtPurchase).HasPrecision(18, 2).IsRequired();
             modelBuilder.Entity<BookOrder>().HasOne(bo => bo.Book).WithMany(b => b.BookOrders).HasForeignKey(bo => bo.BookId);
             modelBuilder.Entity<BookOrder>().HasOne(bo => bo.Order).WithMany(o => o.BookOrders).HasForeignKey(bo => bo.OrderId);
+
+            modelBuilder.Entity<RefreshToken>().HasKey(rt => rt.Id);
+            modelBuilder.Entity<RefreshToken>().Property(rt => rt.Token).HasMaxLength(64).IsRequired().UseCollation("Latin1_General_CS_AS");
+            modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.Token).IsUnique().HasDatabaseName("RefreshTokens_Token");
+            modelBuilder.Entity<RefreshToken>().Property(rt => rt.ExpiryDate).IsRequired();
+            modelBuilder.Entity<RefreshToken>().HasOne(rt => rt.User).WithMany().HasForeignKey(rt => rt.UserId).IsRequired();
 
             // Seed the genre data from enum GenreType
             var genreSeeds = Enum.GetValues(typeof(GenreType))

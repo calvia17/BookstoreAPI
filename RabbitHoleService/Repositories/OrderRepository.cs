@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using RabbitHoleService.Models;
 using RabbitHoleService.Objects;
 
@@ -50,6 +49,7 @@ namespace RabbitHoleService.Repositories
             }
 
             var order = await ordersQuery
+                        .Include(o => o.Customer)
                         .Include(o => o.BookOrders)
                             .ThenInclude(bo => bo.Book)
                         .FirstOrDefaultAsync(o => o.Id == id);

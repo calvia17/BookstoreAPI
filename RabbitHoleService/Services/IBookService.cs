@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using RabbitHoleService.Dtos;
-using RabbitHoleService.Exceptions;
-using RabbitHoleService.Objects;
+﻿using RabbitHoleService.Dtos;
 
 namespace RabbitHoleService.Services
 {
@@ -49,15 +46,17 @@ namespace RabbitHoleService.Services
         /// </summary>
         /// <param name="id">The id.</param>
         /// <param name="updateData">The update data.</param>
+        /// <param name="isAdmin">A value indicating whether the user is an admin.</param>
         /// <returns>A task that represents the update operation.</returns>
-        Task UpdateAsync(Guid id, UpdateBookDto updateData);
+        Task UpdateAsync(Guid id, UpdateBookDto updateData, bool isAdmin);
 
         /// <summary>
         /// Updates multiple books.
         /// </summary>
         /// <param name="updateData">The data to update.</param>
+        /// <param name="isAdmin">A value indicating whether the user is an admin.</param>
         /// <returns>A task that represents the update operation.</returns>
-        Task UpdateMultipleAsync(UpdateMultipleBooksDto updateData);
+        Task UpdateMultipleAsync(UpdateMultipleBooksDto updateData, bool isAdmin);
 
         /// <summary>
         /// Deletes a book.

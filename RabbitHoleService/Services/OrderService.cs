@@ -1,13 +1,8 @@
-﻿using Humanizer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using RabbitHoleService.Data;
+﻿using RabbitHoleService.Data;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
 using RabbitHoleService.Objects;
-using RabbitHoleService.Repositories;
-using System.Text.RegularExpressions;
 
 namespace RabbitHoleService.Services
 {
@@ -42,16 +37,18 @@ namespace RabbitHoleService.Services
         /// Gets the order.
         /// </summary>
         /// <param name="id">The id.</param>
+        /// <param name="isStaffOrAdmin">Indicates if the user is staff or admin.</param>
+        /// <param name="userId">The user id.</param>
         /// <returns>The order.</returns>
-        public async Task<OrderDto> GetAsync(Guid id)
+        public async Task<OrderDto> GetAsync(Guid id, bool isStaffOrAdmin, string userId)
         {
             if (id == Guid.Empty)
             {
-                throw new ArgumentException("Invalid ID provided.", nameof(id));
+                throw new ArgumentException("Invalid order ID provided.", nameof(id));
             }
 
             var order = await this.unitOfWork.Orders.GetAsync(id);
-            if (order == null)
+            if (order == null || (!isStaffOrAdmin && order.Customer.UserId != userId))
             {
                 throw new OrderNotFoundException(id);
             }
@@ -66,7 +63,6 @@ namespace RabbitHoleService.Services
         /// <returns>The orders.</returns>
         public async Task<IEnumerable<OrderDto>> GetOrdersForCustomerAsync(Guid customerId)
         {
-            // TODO: Add authorization
             if (customerId == Guid.Empty)
             {
                 throw new ArgumentException("Invalid ID provided.", nameof(customerId));
@@ -77,21 +73,32 @@ namespace RabbitHoleService.Services
         }
 
         /// <summary>
-        /// Creates a new order.
+        /// Gets the orders for the authenticated customer.
+        /// </summary>
+        /// <param name="userId">The user id.</param>
+        /// <returns>The orders.</returns>
+        public async Task<IEnumerable<OrderDto>> GetOrdersAsync(string userId)
+        {
+            var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId);
+            if (customer == null)
+            {
+                throw new CustomerNotFoundException(userId);
+            }
+
+            var orders = await this.unitOfWork.Orders.GetByCustomerIdAsync(customer.Id);
+            return orders.Select(x => OrderModelDtoMapper.ToDto(x));
+        }
+
+        /// <summary>
+        /// Creates a new order for a customer.
         /// </summary>
         /// <param name="newOrderData">The new order data.</param>
         /// <param name="idempotencyKey">The idempotency key.</param>
         /// <returns>The order.</returns>
-        public async Task<OrderDto> CreateAsync(string idempotencyKey, CreateOrderDto newOrderData)
+        public async Task<OrderDto> CreateForCustomerAsync(string idempotencyKey, CreateOrderForCustomerDto newOrderData)
         {
             ArgumentNullException.ThrowIfNull(newOrderData);
             ArgumentException.ThrowIfNullOrEmpty(idempotencyKey);
-
-            var (existingOrder, idempotencyKeyValue) = await this.ValidateIdempotencyKey(idempotencyKey);
-            if (existingOrder != null)
-            {
-                return existingOrder;
-            }
 
             var customer = await this.unitOfWork.Customers.GetAsync(newOrderData.CustomerId!.Value);
             if (customer == null)
@@ -99,71 +106,78 @@ namespace RabbitHoleService.Services
                 throw new CustomerNotFoundException(newOrderData.CustomerId!.Value);
             }
 
+            return await CreateAsync(idempotencyKey, newOrderData, customer.Id);
+        }
+
+        /// <summary>
+        /// Creates a new order for the authenticated customer.
+        /// </summary>
+        /// <param name="newOrderData">The new order data.</param>
+        /// <param name="idempotencyKey">The idempotency key.</param>
+        /// <param name="userId">The userId.</param>
+        /// <returns>The order.</returns>
+        public async Task<OrderDto> CreateAsync(string idempotencyKey, CreateOrderDto newOrderData, string userId)
+        {
+            ArgumentNullException.ThrowIfNull(newOrderData);
+            ArgumentException.ThrowIfNullOrEmpty(idempotencyKey);
+
+            var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId);
+            if (customer == null)
+            {
+                throw new CustomerNotFoundException(userId);
+            }
+
+            return await CreateAsync(idempotencyKey, newOrderData, customer.Id);
+        }
+
+        private async Task<OrderDto> CreateAsync(string idempotencyKey, CreateOrderDto newOrderData, Guid customerId)
+        {
+            var (existingOrder, idempotencyKeyValue) = await this.ValidateIdempotencyKey(idempotencyKey);
+            if (existingOrder != null)
+            {
+                return existingOrder;
+            }
+
             var books = await this.ValidateBooks(newOrderData);
             var booksMap = books.ToDictionary(x => x.Id);
             ValidateStock(newOrderData, booksMap);
 
-            return await ProcessTransaction(idempotencyKeyValue, newOrderData, booksMap);
+            return await ProcessTransaction(idempotencyKeyValue, newOrderData, booksMap, customerId);
         }
 
-        /// <summary>
-        /// Updates the order status.
-        /// </summary>
-        /// <param name="id">The order id.</param>
-        /// <param name="updateData">The data to update.</param>
-        /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateStatusAsync(Guid id, UpdateOrderStatusDto updateData)
-        {
-            // TODO: Add authorization
-            ArgumentNullException.ThrowIfNull(updateData);
-
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentException("Invalid ID provided.", nameof(id));
-            }
-
-            var order = await this.unitOfWork.Orders.GetAsync(id, true);
-            if (order == null)
-            {
-                throw new OrderNotFoundException(id);
-            }
-
-            if (!order.UpdateStatus(updateData.Status!.Value))
-            {
-                throw new InvalidOrderStatusChangeException(order.Id, order.Status, updateData.Status!.Value);
-            }
-
-            await this.unitOfWork.SaveChangesAsync();
-        }
-
-        private async Task<OrderDto> ProcessTransaction(Guid idempotencyKey, CreateOrderDto newOrderData, Dictionary<Guid, Book> booksMap)
+        private async Task<OrderDto> ProcessTransaction(Guid idempotencyKey, CreateOrderDto newOrderData, Dictionary<Guid, Book> booksMap, Guid customerId)
         {
             await using (var transaction = await this.unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
-                    var orderToCreate = OrderModelDtoMapper.ToModel(newOrderData, idempotencyKey);
+                    // Create the order with Pending status.
+                    var orderToCreate = OrderModelDtoMapper.ToModel(newOrderData, idempotencyKey, customerId);
+                    this.unitOfWork.Orders.Add(orderToCreate);
+                    await this.unitOfWork.SaveChangesAsync();
+
+                    var createdOrder = await this.unitOfWork.Orders.GetAsync(orderToCreate.Id, true);
+
+                    if (createdOrder == null)
+                    {
+                        throw new InvalidOperationException("Order was not found after creation");
+                    }
 
                     // Add books to the order and update stock
-                    var bookIdsToUpdate = newOrderData.OrderItems.Select(x => x.BookId!.Value).ToHashSet();
-                    var booksToUpdate = await this.unitOfWork.Books.GetAsync(bookIdsToUpdate, true);
-                    var booksToUpdateMap = booksToUpdate.ToDictionary(x => x.Id);
                     foreach (var item in newOrderData.OrderItems)
                     {
                         if (booksMap.TryGetValue(item.BookId!.Value, out var book))
                         {
-                            orderToCreate.AddBook(book, item.Quantity!.Value);
-                            booksToUpdateMap[book.Id].Stock -= item.Quantity!.Value;
+                            createdOrder.AddBook(book, item.Quantity!.Value);
+                            book.Stock -= item.Quantity!.Value;
                         }
                     }
 
-                    this.unitOfWork.Orders.Add(orderToCreate);
+                    // Update the order status to Processed and save all the changes.
+                    createdOrder.UpdateStatus(OrderStatus.Processed, false);
                     await this.unitOfWork.SaveChangesAsync();
-                    var createdOrder = await this.unitOfWork.Orders.GetAsync(orderToCreate.Id, true);
-                    createdOrder!.UpdateStatus(OrderStatus.Processed, false);
-                    await this.unitOfWork.SaveChangesAsync();
-                    await transaction.CommitAsync();
 
+                    await transaction.CommitAsync();
                     return OrderModelDtoMapper.ToDto(createdOrder);
                 }
                 catch
@@ -216,7 +230,7 @@ namespace RabbitHoleService.Services
             }
 
             // Check if all the books exist
-            var books = await this.unitOfWork.Books.GetAsync(bookIds);
+            var books = await this.unitOfWork.Books.GetAsync(bookIds, true);
             var notFoundBookIds = bookIds.Except(books.Select(x => x.Id)).ToList();
             if (notFoundBookIds.Count > 0)
             {
@@ -253,6 +267,53 @@ namespace RabbitHoleService.Services
             }
 
             return (null, idempotencyKeyValue);
+        }
+
+        /// <summary>
+        /// Updates the order status.
+        /// </summary>
+        /// <param name="id">The order id.</param>
+        /// <param name="updateData">The data to update.</param>
+        /// <param name="isAdmin">Indicates if the user is an admin.</param>
+        /// <returns>A task that represents the update operation.</returns>
+        public async Task UpdateStatusAsync(Guid id, UpdateOrderStatusDto updateData, bool isAdmin)
+        {
+            ArgumentNullException.ThrowIfNull(updateData);
+
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException("Invalid ID provided.", nameof(id));
+            }
+
+            var order = await this.unitOfWork.Orders.GetAsync(id, true);
+            if (order == null)
+            {
+                throw new OrderNotFoundException(id);
+            }
+
+            if (!order.UpdateStatus(updateData.Status!.Value, !isAdmin))
+            {
+                throw new InvalidOrderStatusChangeException(order.Id, order.Status, updateData.Status!.Value);
+            }
+            else if (order.Status == OrderStatus.Cancelled)
+            {
+                // Update stock for books in the cancelled order
+                var bookIdsToUpdate = order.BookOrders.Select(x => x.BookId).ToHashSet();
+                if (bookIdsToUpdate.Count > 0)
+                {
+                    var booksToUpdate = await this.unitOfWork.Books.GetAsync(bookIdsToUpdate, true);
+                    var booksToUpdateMap = booksToUpdate.ToDictionary(x => x.Id);
+                    foreach (var item in order.BookOrders)
+                    {
+                        if (booksToUpdateMap.TryGetValue(item.BookId, out var book))
+                        {
+                            book.Stock += item.Quantity;
+                        }
+                    }
+                }
+            }
+
+            await this.unitOfWork.SaveChangesAsync();
         }
     }
 }

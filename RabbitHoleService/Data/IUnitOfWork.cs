@@ -29,6 +29,11 @@ namespace RabbitHoleService.Data
         public IOrderRepository Orders { get; }
 
         /// <summary>
+        /// The refresh tokens.
+        /// </summary>
+        public IRefreshTokenRepository RefreshTokens { get; }
+
+        /// <summary>
         /// Begins the transaction.
         /// </summary>
         /// <returns>A task representing the transaction start.</returns>

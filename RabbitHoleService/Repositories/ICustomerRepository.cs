@@ -1,6 +1,4 @@
-﻿using RabbitHoleService.Dtos;
-using RabbitHoleService.Mappers;
-using RabbitHoleService.Objects;
+﻿using RabbitHoleService.Objects;
 
 namespace RabbitHoleService.Repositories
 {
@@ -24,6 +22,14 @@ namespace RabbitHoleService.Repositories
         Task<Customer?> GetAsync(Guid id, bool trackChanges = false);
 
         /// <summary>
+        /// Gets the customer by the user id.
+        /// </summary>
+        /// <param name="userId">The user id.</param>
+        /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <returns>The customer.</returns>
+        Task<Customer?> GetByUserIdAsync(string userId, bool trackChanges = false);
+
+        /// <summary>
         /// Creates a new customer.
         /// </summary>
         /// <param name="newCustomerData">The new customer data.</param>
@@ -41,7 +47,8 @@ namespace RabbitHoleService.Repositories
         /// <param name="email">The name.</param>
         /// <param name="name">The phone.</param>
         /// <param name="phone">The email.</param>
+        /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
         /// <returns>The customers.</returns>
-        Task<IEnumerable<Customer>> FindCustomersAsync(string? name, string? phone, string? email);
+        Task<List<Customer>> FindCustomersAsync(string? name, string? phone, string? email, bool trackChanges = false);
     }
 }

@@ -45,13 +45,13 @@ namespace RabbitHoleService.Objects
         /// Initializes and instance of BookOrder.
         /// </summary>
         /// <param name="bookId">The book id.</param>
-        /// <param name="order">The order.</param>
+        /// <param name="orderId">The order id.</param>
         /// <param name="quantity">The quantity.</param>
         /// <param name="priceAtPurchase">The price at purchase.</param>
-        public BookOrder(Guid bookId, Order order, int quantity, decimal priceAtPurchase)
+        public BookOrder(Guid bookId, Guid orderId, int quantity, decimal priceAtPurchase)
         {
             this.BookId = bookId;
-            this.Order = order;
+            this.OrderId = orderId;
             this.Quantity = quantity;
             this.PriceAtPurchase = priceAtPurchase;
         }

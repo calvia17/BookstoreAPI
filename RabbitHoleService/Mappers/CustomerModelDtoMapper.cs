@@ -31,7 +31,7 @@ namespace RabbitHoleService.Mappers
         /// </summary>
         /// <param name="dto">The dto.</param>
         /// <returns>The model.</returns>
-        public static Customer ToModel(CreateCustomerDto dto)
+        public static Customer ToModel(ContactInfoDto dto)
         {
             ArgumentNullException.ThrowIfNull(dto);
 

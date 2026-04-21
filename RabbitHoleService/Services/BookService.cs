@@ -1,14 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using NuGet.Protocol.Core.Types;
-using RabbitHoleService.Data;
+﻿using RabbitHoleService.Data;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
-using RabbitHoleService.Models;
 using RabbitHoleService.Objects;
-using RabbitHoleService.Repositories;
-using System.Threading.Tasks;
 
 namespace RabbitHoleService.Services
 {
@@ -146,8 +140,9 @@ namespace RabbitHoleService.Services
         /// </summary>
         /// <param name="id">The id.</param>
         /// <param name="updateData">The update data.</param>
+        /// <param name="isAdmin">A value indicating whether the user is an admin.</param>
         /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateAsync(Guid id, UpdateBookDto updateData)
+        public async Task UpdateAsync(Guid id, UpdateBookDto updateData, bool isAdmin)
         {
             ArgumentNullException.ThrowIfNull(updateData);
 
@@ -162,7 +157,7 @@ namespace RabbitHoleService.Services
                 throw new BookNotFoundException(id);
             }
 
-            UpdateBookProperties(updateData, book);
+            UpdateBookProperties(updateData, book, isAdmin);
             await this.unitOfWork.SaveChangesAsync();
         }
 
@@ -170,8 +165,9 @@ namespace RabbitHoleService.Services
         /// Updates multiple books.
         /// </summary>
         /// <param name="updateData">The data to update.</param>
+        /// <param name="isAdmin">A value indicating whether the user is an admin.</param>
         /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateMultipleAsync(UpdateMultipleBooksDto updateData)
+        public async Task UpdateMultipleAsync(UpdateMultipleBooksDto updateData, bool isAdmin)
         {
             ArgumentNullException.ThrowIfNull(updateData);
 
@@ -206,7 +202,7 @@ namespace RabbitHoleService.Services
             {
                 if (updateDataMap.TryGetValue(book.Id, out var bookUpdateData))
                 {
-                    UpdateBookProperties(bookUpdateData, book);
+                    UpdateBookProperties(bookUpdateData, book, isAdmin);
                 }
             }
 
@@ -247,7 +243,7 @@ namespace RabbitHoleService.Services
             return books.Select(BookModelDtoMapper.ToDto).ToList();
         }
 
-        private static void UpdateBookProperties(UpdateBookDto updateData, Book book)
+        private static void UpdateBookProperties(UpdateBookDto updateData, Book book, bool isAdmin)
         {
             if (!string.IsNullOrEmpty(updateData.Name))
             {
@@ -261,7 +257,14 @@ namespace RabbitHoleService.Services
 
             if (updateData.Cost.HasValue)
             {
-                book.Cost = updateData.Cost.Value;
+                if (isAdmin)
+                {
+                    book.Cost = updateData.Cost.Value;
+                }
+                else
+                {
+                    throw new UnauthorizedAccessException("Only admins can update the cost of a book.");
+                }
             }
 
             if (updateData.Stock.HasValue)

@@ -40,12 +40,13 @@ namespace RabbitHoleService.Mappers
         /// </summary>
         /// <param name="dto">The dto.</param>
         /// <param name="idempotencyKey">The idempotency key.</param>
+        /// <param name="customerId">The customer id.</param>
         /// <returns>The model.</returns>
-        public static Order ToModel(CreateOrderDto dto, Guid idempotencyKey)
+        public static Order ToModel(CreateOrderDto dto, Guid idempotencyKey, Guid customerId)
         {
             ArgumentNullException.ThrowIfNull(dto);
 
-            var order = new Order(idempotencyKey, dto.CustomerId!.Value);
+            var order = new Order(idempotencyKey, customerId);
             return order;
         }
     }

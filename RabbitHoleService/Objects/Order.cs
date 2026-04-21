@@ -49,7 +49,7 @@ namespace RabbitHoleService.Objects
         /// <summary>
         /// Gets the book orders.
         /// </summary>
-        public ICollection<BookOrder> BookOrders { get; } = null!; // This is a Navigation Property, but in C#, navigation properties that are collections (like ICollection, List, or HashSet) are real objects that you can manipulate.
+        public ICollection<BookOrder> BookOrders { get; } = null!;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Order" /> class.
@@ -62,7 +62,7 @@ namespace RabbitHoleService.Objects
             this.CreatedAt = DateTimeOffset.UtcNow;
             this.CustomerId = customerId;
             this.Status = OrderStatus.Pending;
-            this.BookOrders = new List<BookOrder>(); // We dont use hash set here because we want to preserve the order in which the books were added.
+            this.BookOrders = new List<BookOrder>();
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace RabbitHoleService.Objects
         /// <param name="quantity">The quantity.</param>
         public void AddBook(Book book, int quantity)
         {
-            var bookOrder = new BookOrder(book.Id, this, quantity, book.Cost);
+            var bookOrder = new BookOrder(book.Id, this.Id, quantity, book.Cost);
             this.BookOrders.Add(bookOrder);
             this.TotalCost += bookOrder.PriceAtPurchase * bookOrder.Quantity;
         }
@@ -85,9 +85,7 @@ namespace RabbitHoleService.Objects
         /// <returns>A value indicating whether the status update was successful.</returns>
         public bool UpdateStatus(OrderStatus newStatus, bool validateTransition = true)
         {
-            // TODO: Add authorization to allow admins (not all staff) to override status change validation to be able to correct errors.
-            // Pass in isAdmin flag to determine if validation should be overridden.
-            if (validateTransition && !this.IsStatusChangeValid(newStatus))
+            if (this.Status == newStatus || (validateTransition && !this.IsStatusChangeValid(newStatus)))
             {
                 return false;
             }

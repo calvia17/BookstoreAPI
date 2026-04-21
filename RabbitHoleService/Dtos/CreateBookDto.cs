@@ -1,5 +1,4 @@
 ﻿using RabbitHoleService.Objects;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace RabbitHoleService.Dtos
@@ -29,7 +28,7 @@ namespace RabbitHoleService.Dtos
         /// </summary>
         [Required(ErrorMessage = "The book ISBN is required.")]
         [RegularExpression(@"^\d+$", ErrorMessage = "The ISBN must contain only numbers.")]
-        [StringLength(13, ErrorMessage = "The book ISBN should not exceed 13 characters.")]
+        [StringLength(13, MinimumLength = 13, ErrorMessage = "The book ISBN must be exactly 13 characters.")]
         public required string Isbn
         {
             get => this.isbn;

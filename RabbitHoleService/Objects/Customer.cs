@@ -14,6 +14,16 @@ namespace RabbitHoleService.Objects
         public Guid Id { get; init; }
 
         /// <summary>
+        /// Gets or sets the user id.
+        /// </summary>
+        public string? UserId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user.
+        /// </summary>
+        public ApplicationUser? User { get; set; }
+
+        /// <summary>
         /// Gets or sets the name.
         /// </summary>
         [Required(ErrorMessage = "The customer name is required.")]

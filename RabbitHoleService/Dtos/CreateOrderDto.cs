@@ -1,6 +1,4 @@
-﻿using RabbitHoleService.Objects;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace RabbitHoleService.Dtos
 {
@@ -9,12 +7,6 @@ namespace RabbitHoleService.Dtos
     /// </summary>
     public class CreateOrderDto
     {
-        /// <summary>
-        /// Gets the customer id.
-        /// </summary>
-        [Required(ErrorMessage = "The customer id is required.")]
-        public required Guid? CustomerId { get; init; }
-
         /// <summary>
         /// Gets the book orders.
         /// </summary>

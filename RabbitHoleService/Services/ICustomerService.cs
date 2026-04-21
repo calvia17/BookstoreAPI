@@ -1,4 +1,5 @@
 ﻿using RabbitHoleService.Dtos;
+using RabbitHoleService.Objects;
 
 namespace RabbitHoleService.Services
 {
@@ -21,11 +22,18 @@ namespace RabbitHoleService.Services
         Task<CustomerDto> GetAsync(Guid id);
 
         /// <summary>
+        /// Gets the customer by the user id.
+        /// </summary>
+        /// <param name="userId">The user id.</param>
+        /// <returns>The customer.</returns>
+        Task<CustomerDto> GetByUserIdAsync(string userId);
+
+        /// <summary>
         /// Creates a new customer.
         /// </summary>
         /// <param name="newCustomerData">The customer to create.</param>
         /// <returns>The customer.</returns>
-        Task<CustomerDto> CreateAsync(CreateCustomerDto newCustomerData);
+        Task<CustomerDto> CreateAsync(ContactInfoDto newCustomerData);
 
         /// <summary>
         /// Updates a customer.
@@ -33,7 +41,14 @@ namespace RabbitHoleService.Services
         /// <param name="id">The id.</param>
         /// <param name="updateData">The update data.</param>
         /// <returns>A task that represents the update operation.</returns>
-        Task UpdateAsync(Guid id, UpdateCustomerDto updateData);
+        Task UpdateAsync(Guid id, UpdateContactInfoDto updateData);
+
+        /// <summary>
+        /// Updates the customer properties.
+        /// </summary>
+        /// <param name="updateData">The update data.</param>
+        /// <param name="customer">The customer to update.</param>
+        void UpdateProperties(UpdateContactInfoDto updateData, Customer customer);
 
         /// <summary>
         /// Deletes a customer.

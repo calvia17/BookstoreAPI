@@ -2,7 +2,7 @@
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
-using RabbitHoleService.Repositories;
+using RabbitHoleService.Objects;
 
 namespace RabbitHoleService.Services
 {
@@ -55,11 +55,27 @@ namespace RabbitHoleService.Services
         }
 
         /// <summary>
+        /// Gets the customer by the user id.
+        /// </summary>
+        /// <param name="userId">The user id.</param>
+        /// <returns>The customer.</returns>
+        public async Task<CustomerDto> GetByUserIdAsync(string userId)
+        {
+            var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId);
+            if (customer == null)
+            {
+                throw new CustomerNotFoundException(userId);
+            }
+
+            return CustomerModelDtoMapper.ToDto(customer);
+        }
+
+        /// <summary>
         /// Creates a new customer.
         /// </summary>
         /// <param name="newCustomerData">The new customer data.</param>
         /// <returns>The book.</returns>
-        public async Task<CustomerDto> CreateAsync(CreateCustomerDto? newCustomerData)
+        public async Task<CustomerDto> CreateAsync(ContactInfoDto? newCustomerData)
         {
             ArgumentNullException.ThrowIfNull(newCustomerData, nameof(newCustomerData));
             var duplicateCustomer = await this.unitOfWork.Customers.FindCustomersAsync(null, newCustomerData.PhoneNumber, null);
@@ -86,7 +102,7 @@ namespace RabbitHoleService.Services
         /// <param name="id">The id.</param>
         /// <param name="updateData">The update data.</param>
         /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateAsync(Guid id, UpdateCustomerDto? updateData)
+        public async Task UpdateAsync(Guid id, UpdateContactInfoDto? updateData)
         {
             ArgumentNullException.ThrowIfNull(updateData, nameof(updateData));
 
@@ -101,6 +117,17 @@ namespace RabbitHoleService.Services
                 throw new CustomerNotFoundException(id);
             }
 
+            UpdateProperties(updateData, customer);
+            await this.unitOfWork.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Updates the customer properties.
+        /// </summary>
+        /// <param name="updateData">The update data.</param>
+        /// <param name="customer">The customer to update.</param>
+        public void UpdateProperties(UpdateContactInfoDto updateData, Customer customer)
+        {
             if (!string.IsNullOrEmpty(updateData.Name))
             {
                 customer.Name = updateData.Name;
@@ -115,8 +142,6 @@ namespace RabbitHoleService.Services
             {
                 customer.Email = updateData.Email;
             }
-
-            await this.unitOfWork.SaveChangesAsync();
         }
 
         /// <summary>

@@ -24,7 +24,7 @@ namespace RabbitHoleService.Objects
         /// Get or sets the isbn.
         /// </summary>
         [Required(ErrorMessage = "The book ISBN is required.")]
-        [StringLength(13)]
+        [StringLength(13, MinimumLength = 13)]
         public string Isbn { get; set; }
 
         /// <summary>

@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
 using RabbitHoleService.Models;
-using RabbitHoleService.Objects;
 using RabbitHoleService.Repositories;
 
 namespace RabbitHoleService.Data
@@ -33,6 +32,11 @@ namespace RabbitHoleService.Data
         public IOrderRepository Orders { get; }
 
         /// <summary>
+        /// The refresh tokens.
+        /// </summary>
+        public IRefreshTokenRepository RefreshTokens { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="UnitOfWork" /> class.
         /// </summary>
         /// <param name="context">The context.</param>
@@ -40,13 +44,15 @@ namespace RabbitHoleService.Data
         /// <param name="genres">The genre repository.</param>
         /// <param name="customers">The customer repository.</param>
         /// <param name="orders">The order repository.</param>
-        public UnitOfWork(BookStoreContext context, IBookRepository books, IGenreRepository genres, ICustomerRepository customers, IOrderRepository orders)
+        /// <param name="refreshTokens">The refresh token repository.</param>
+        public UnitOfWork(BookStoreContext context, IBookRepository books, IGenreRepository genres, ICustomerRepository customers, IOrderRepository orders, IRefreshTokenRepository refreshTokens)
         {
             this.context = context;
             this.Books = books;
             this.Genres = genres;
             this.Customers = customers;
             this.Orders = orders;
+            this.RefreshTokens = refreshTokens;
         }
 
         /// <summary>

@@ -3,9 +3,9 @@
 namespace RabbitHoleService.Dtos
 {
     /// <summary>
-    /// The Create Customer dto.
+    /// The contact information dto.
     /// </summary>
-    public class CreateCustomerDto
+    public class ContactInfoDto
     {
         private string name = string.Empty;
         private string phoneNumber = string.Empty;
