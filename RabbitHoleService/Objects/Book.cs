@@ -47,6 +47,11 @@ namespace RabbitHoleService.Objects
         public int Stock { get; set; }
 
         /// <summary>
+        /// A value indicating whether the book is deleted.
+        /// </summary>
+        public bool IsDeleted { get; set; }
+
+        /// <summary>
         /// Gets the book orders.
         /// </summary>
         public ICollection<BookOrder> BookOrders { get; } = null!;

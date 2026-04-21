@@ -175,9 +175,9 @@ namespace RabbitHoleService.Controllers
         public async Task<IActionResult> DeleteAccount()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId != null)
+            if (userId != null && Enum.TryParse<RoleType>(User.FindFirstValue(ClaimTypes.Role), true, out var role))
             {
-                await this.authService.DeleteAccountAsync(userId);
+                await this.authService.DeleteAccountAsync(userId, role);
             }
 
             return Ok();

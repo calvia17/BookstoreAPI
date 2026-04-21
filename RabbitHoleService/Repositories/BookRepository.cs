@@ -34,6 +34,7 @@ namespace RabbitHoleService.Repositories
         {
             var books = await this.context.Books
                         .AsNoTracking()
+                        .Where(b => !b.IsDeleted)
                         .Include(b => b.BookGenres)
                         .ToListAsync();
             return books;
@@ -55,7 +56,7 @@ namespace RabbitHoleService.Repositories
 
             var book = await booksQuery
                         .Include(b => b.BookGenres)
-                        .FirstOrDefaultAsync(b => b.Id == id);
+                        .FirstOrDefaultAsync(b => !b.IsDeleted && b.Id == id);
             return book;
         }
 
@@ -74,8 +75,8 @@ namespace RabbitHoleService.Repositories
             }
 
             var books = await booksQuery
+                        .Where(b => !b.IsDeleted && ids.Contains(b.Id))
                         .Include(b => b.BookGenres)
-                        .Where(b => ids.Contains(b.Id))
                         .ToListAsync();
             return books;
         }
@@ -90,7 +91,7 @@ namespace RabbitHoleService.Repositories
             var book = await this.context.Books
                         .AsNoTracking()
                         .Include(b => b.BookGenres)
-                        .FirstOrDefaultAsync(b => b.Isbn == isbn);
+                        .FirstOrDefaultAsync(b => !b.IsDeleted && b.Isbn == isbn);
             return book;
         }
 
@@ -103,8 +104,8 @@ namespace RabbitHoleService.Repositories
         {
             var books = await this.context.Books
                         .AsNoTracking()
+                        .Where(b => !b.IsDeleted && isbns.Contains(b.Isbn))
                         .Include(b => b.BookGenres)
-                        .Where(b => isbns.Contains(b.Isbn))
                         .ToListAsync();
             return books;
         }
@@ -130,16 +131,6 @@ namespace RabbitHoleService.Repositories
         }
 
         /// <summary>
-        /// Deletes a book.
-        /// </summary>
-        /// <param name="book">The book.</param>
-        public void Delete(Book book)
-        {
-            ArgumentNullException.ThrowIfNull(book);
-            this.context.Books.Remove(book);
-        }
-
-        /// <summary>
         /// Finds books that match a certain criteria.
         /// </summary>
         /// <param name="isbn">The isbn.</param>
@@ -151,7 +142,7 @@ namespace RabbitHoleService.Repositories
         /// <returns>The books.</returns>
         public async Task<IEnumerable<Book>> FindBooksAsync(string? isbn, string? name, string? author, decimal? minimumCost, decimal? maximumCost, HashSet<GenreType>? genreIds)
         {
-            var books = this.context.Books.AsNoTracking().Include(b => b.BookGenres).AsQueryable();
+            var books = this.context.Books.AsNoTracking().Where(b => !b.IsDeleted).Include(b => b.BookGenres).AsQueryable();
             if (!string.IsNullOrEmpty(isbn))
             {
                 books = books.Where(b => b.Isbn.StartsWith(isbn));

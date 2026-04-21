@@ -36,12 +36,6 @@ namespace RabbitHoleService.Repositories
         void Add(Customer newCustomerData);
 
         /// <summary>
-        /// Deletes a customer.
-        /// </summary>
-        /// <param name="cusotmer">The cusotmer.</param>
-        void Delete(Customer customer);
-
-        /// <summary>
         /// Finds customers that match a certain criteria.
         /// </summary>
         /// <param name="email">The name.</param>

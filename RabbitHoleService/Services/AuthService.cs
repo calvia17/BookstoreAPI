@@ -193,8 +193,9 @@ namespace RabbitHoleService.Services
         /// Deletes a user account.
         /// </summary>
         /// <param name="userId">The user id.</param>
+        /// <param name="role">The role of the user.</param>
         /// <returns>The result of the delete operation.</returns>
-        public async Task DeleteAccountAsync(string userId)
+        public async Task DeleteAccountAsync(string userId, RoleType role)
         {
             await using (var transaction = await this.unitOfWork.BeginTransactionAsync())
             {
@@ -208,6 +209,15 @@ namespace RabbitHoleService.Services
 
                     user.IsDeleted = true;
                     await userManager.UpdateAsync(user);
+                    if (role == RoleType.Customer)
+                    {
+                        var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId, true);
+                        if (customer != null)
+                        {
+                            customer.IsDeleted = true;
+                        }
+                    }
+
                     this.unitOfWork.RefreshTokens.DeleteTokensByUserId(userId);
                     await this.unitOfWork.SaveChangesAsync();
                     await transaction.CommitAsync();

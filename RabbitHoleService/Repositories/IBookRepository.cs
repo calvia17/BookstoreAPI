@@ -57,12 +57,6 @@ namespace RabbitHoleService.Repositories
         void AddMultiple(IEnumerable<Book> newBooksData);
 
         /// <summary>
-        /// Deletes a book.
-        /// </summary>
-        /// <param name="book">The book.</param>
-        void Delete(Book book);
-
-        /// <summary>
         /// Finds books that match a certain criteria.
         /// </summary>
         /// <param name="isbn">The isbn.</param>

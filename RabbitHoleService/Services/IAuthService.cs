@@ -48,8 +48,9 @@ namespace RabbitHoleService.Services
         /// Deletes a user account.
         /// </summary>
         /// <param name="userId">The user id.</param>
+        /// <param name="role">The role of the user.</param>
         /// <returns>The result of the delete operation.</returns>
-        Task DeleteAccountAsync(string userId);
+        Task DeleteAccountAsync(string userId, RoleType role);
 
         /// <summary>
         /// Refreshes the access and refresh tokens.

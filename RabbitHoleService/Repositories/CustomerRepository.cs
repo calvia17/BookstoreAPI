@@ -26,7 +26,7 @@ namespace RabbitHoleService.Repositories
         /// <returns>The customers.</returns>
         public async Task<IEnumerable<Customer>> GetAllAsync()
         {
-            var customers = await this.context.Customers.AsNoTracking().ToListAsync();
+            var customers = await this.context.Customers.AsNoTracking().Where(c => !c.IsDeleted).ToListAsync();
             return customers;
         }
 
@@ -45,7 +45,7 @@ namespace RabbitHoleService.Repositories
                 customersQuery = customersQuery.AsNoTracking();
             }
 
-            var customer = await customersQuery.FirstOrDefaultAsync(c => c.Id == id);
+            var customer = await customersQuery.FirstOrDefaultAsync(c => !c.IsDeleted && c.Id == id);
             return customer;
         }
 
@@ -63,7 +63,7 @@ namespace RabbitHoleService.Repositories
                 customersQuery = customersQuery.AsNoTracking();
             }
 
-            var customer = await customersQuery.FirstOrDefaultAsync(c => c.UserId == userId);
+            var customer = await customersQuery.FirstOrDefaultAsync(c => !c.IsDeleted && c.UserId == userId);
             return customer;
         }
 
@@ -75,16 +75,6 @@ namespace RabbitHoleService.Repositories
         {
             ArgumentNullException.ThrowIfNull(newCustomerData, nameof(newCustomerData));
             this.context.Customers.Add(newCustomerData);
-        }
-
-        /// <summary>
-        /// Deletes a customer.
-        /// </summary>
-        /// <param name="customer">The customer.</param>
-        public void Delete(Customer customer)
-        {
-            ArgumentNullException.ThrowIfNull(customer, nameof(customer));
-            this.context.Customers.Remove(customer);
         }
 
         /// <summary>
@@ -103,6 +93,7 @@ namespace RabbitHoleService.Repositories
                 customers = customers.AsNoTracking();
             }
 
+            customers = customers.Where(c => !c.IsDeleted);
             if (!string.IsNullOrEmpty(name))
             {
                 customers = customers.Where(c => c.Name.StartsWith(name));

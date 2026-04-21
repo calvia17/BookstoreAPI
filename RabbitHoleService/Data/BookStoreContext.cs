@@ -56,6 +56,7 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<Book>().HasIndex(b => b.Author).HasDatabaseName("Books_Author");
             modelBuilder.Entity<Book>().Property(b => b.Cost).HasPrecision(10, 2).IsRequired();
             modelBuilder.Entity<Book>().Property(b => b.Stock).IsRequired();
+            modelBuilder.Entity<Book>().Property(b => b.IsDeleted).IsRequired();
 
             modelBuilder.Entity<Customer>().HasKey(c => c.Id);
             modelBuilder.Entity<Customer>().HasOne(c => c.User).WithOne().HasForeignKey<Customer>(c => c.UserId).IsRequired().OnDelete(DeleteBehavior.Cascade);
@@ -63,9 +64,10 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<Customer>().Property(c => c.Name).HasMaxLength(200).IsRequired();
             modelBuilder.Entity<Customer>().HasIndex(c => c.Name).HasDatabaseName("Customers_Name");
             modelBuilder.Entity<Customer>().Property(c => c.PhoneNumber).HasMaxLength(20).IsRequired();
-            modelBuilder.Entity<Customer>().HasIndex(c => c.PhoneNumber).IsUnique().HasDatabaseName("Customers_PhoneNumber");
+            modelBuilder.Entity<Customer>().HasIndex(c => c.PhoneNumber).IsUnique().HasFilter("[IsDeleted] = 0").HasDatabaseName("Customers_PhoneNumber");
             modelBuilder.Entity<Customer>().Property(c => c.Email).HasMaxLength(255).IsRequired();
-            modelBuilder.Entity<Customer>().HasIndex(c => c.Email).IsUnique().HasDatabaseName("Customers_Email");
+            modelBuilder.Entity<Customer>().HasIndex(c => c.Email).IsUnique().HasFilter("[IsDeleted] = 0").HasDatabaseName("Customers_Email");
+            modelBuilder.Entity<Customer>().Property(c => c.IsDeleted).IsRequired();
 
             modelBuilder.Entity<Order>().HasKey(o => o.Id);
             modelBuilder.Entity<Order>().Property(o => o.IdempotencyKey).IsRequired();

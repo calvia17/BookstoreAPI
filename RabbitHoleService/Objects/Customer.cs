@@ -47,6 +47,11 @@ namespace RabbitHoleService.Objects
         public string Email { get; set; }
 
         /// <summary>
+        /// A value indicating whether the customer is deleted.
+        /// </summary>
+        public bool IsDeleted { get; set; }
+
+        /// <summary>
         /// Gets the orders
         /// </summary>
         public ICollection<Order> Orders { get; } = null!;

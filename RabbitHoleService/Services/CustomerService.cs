@@ -156,13 +156,13 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var customer = await this.unitOfWork.Customers.GetAsync(id);
+            var customer = await this.unitOfWork.Customers.GetAsync(id, true);
             if (customer == null)
             {
                 throw new CustomerNotFoundException(id);
             }
 
-            this.unitOfWork.Customers.Delete(customer);
+            customer.IsDeleted = true;
             await this.unitOfWork.SaveChangesAsync();
         }
 

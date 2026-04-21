@@ -221,13 +221,13 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var book = await this.unitOfWork.Books.GetAsync(id);
+            var book = await this.unitOfWork.Books.GetAsync(id, true);
             if (book == null)
             {
                 throw new BookNotFoundException(id);
             }
 
-            this.unitOfWork.Books.Delete(book);
+            book.IsDeleted = true;
             await this.unitOfWork.SaveChangesAsync();
         }
 
