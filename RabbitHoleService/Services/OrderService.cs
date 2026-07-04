@@ -82,7 +82,7 @@ namespace RabbitHoleService.Services
             var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId);
             if (customer == null)
             {
-                throw new CustomerNotFoundException(userId);
+                throw new PersonNotFoundException<Customer>(userId);
             }
 
             var orders = await this.unitOfWork.Orders.GetByCustomerIdAsync(customer.Id);
@@ -103,7 +103,7 @@ namespace RabbitHoleService.Services
             var customer = await this.unitOfWork.Customers.GetAsync(newOrderData.CustomerId!.Value);
             if (customer == null)
             {
-                throw new CustomerNotFoundException(newOrderData.CustomerId!.Value);
+                throw new PersonNotFoundException<Customer>(newOrderData.CustomerId!.Value);
             }
 
             return await CreateAsync(idempotencyKey, newOrderData, customer.Id);
@@ -124,7 +124,7 @@ namespace RabbitHoleService.Services
             var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId);
             if (customer == null)
             {
-                throw new CustomerNotFoundException(userId);
+                throw new PersonNotFoundException<Customer>(userId);
             }
 
             return await CreateAsync(idempotencyKey, newOrderData, customer.Id);

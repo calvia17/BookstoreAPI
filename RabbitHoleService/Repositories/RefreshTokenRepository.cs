@@ -12,7 +12,7 @@ namespace RabbitHoleService.Repositories
         private readonly BookStoreContext context;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BookRepository" /> class.
+        /// Initializes a new instance of the <see cref="RefreshTokenRepository" /> class.
         /// </summary>
         /// <param name="context">The context.</param>
         public RefreshTokenRepository(BookStoreContext context)

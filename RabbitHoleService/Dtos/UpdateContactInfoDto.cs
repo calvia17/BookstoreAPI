@@ -8,7 +8,6 @@ namespace RabbitHoleService.Dtos
     public class UpdateContactInfoDto
     {
         private string? name;
-        private string? email;
         private string? phoneNumber;
 
         /// <summary>
@@ -30,17 +29,6 @@ namespace RabbitHoleService.Dtos
         {
             get => this.phoneNumber;
             init => this.phoneNumber = value?.Trim();
-        }
-
-        /// <summary>
-        /// Gets the email.
-        /// </summary>
-        [StringLength(255)]
-        [EmailAddress(ErrorMessage = "Invalid email format.")]
-        public string? Email
-        {
-            get => this.email;
-            init => this.email = value?.Trim();
         }
     }
 }

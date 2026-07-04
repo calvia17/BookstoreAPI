@@ -4,29 +4,29 @@ using RabbitHoleService.Objects;
 namespace RabbitHoleService.Services
 {
     /// <summary>
-    /// The customer service interface.
+    /// The staff service interface.
     /// </summary>
-    public interface ICustomerService
+    public interface IStaffService
     {
         /// <summary>
         /// Gets all the persons.
         /// </summary>
         /// <returns>The persons.</returns>
-        public Task<IEnumerable<CustomerDto>> GetAllAsync();
+        public Task<IEnumerable<StaffDto>> GetAllAsync();
 
         /// <summary>
         /// Gets the person.
         /// </summary>
         /// <param name="id">The id.</param>
         /// <returns>The person.</returns>
-        public Task<CustomerDto> GetAsync(Guid id);
+        public Task<StaffDto> GetAsync(Guid id);
 
         /// <summary>
         /// Gets the person by the user id.
         /// </summary>
         /// <param name="userId">The user id.</param>
         /// <returns>The person.</returns>
-        public Task<CustomerDto> GetByUserIdAsync(string userId);
+        public Task<StaffDto> GetByUserIdAsync(string userId);
 
         /// <summary>
         /// Registers a new person.
@@ -34,14 +34,7 @@ namespace RabbitHoleService.Services
         /// <param name="registerData">The registration data.</param>
         /// <param name="role">The role.</param>
         /// <returns>The person.</returns>
-        public Task<CustomerDto> RegisterAsync(RegisterUserDto registerData, RoleType role);
-
-        /// <summary>
-        /// Creates a new customer.
-        /// </summary>
-        /// <param name="newCustomerData">The customer to create.</param>
-        /// <returns>The customer.</returns>
-        Task<CustomerDto> CreateAsync(ContactInfoDto newCustomerData);
+        public Task<StaffDto> RegisterAsync(RegisterUserDto registerData, RoleType role);
 
         /// <summary>
         /// Updates a person.
@@ -52,12 +45,12 @@ namespace RabbitHoleService.Services
         public Task UpdateAsync(Guid id, UpdateContactInfoDto updateData);
 
         /// <summary>
-        /// Updates the account details.
+        /// Updates the salary.
         /// </summary>
-        /// <param name="userId">The user id.</param>
+        /// <param name="id">The id.</param>
         /// <param name="updateData">The update data.</param>
-        /// <returns>A value indicating whether the update was successful.</returns>
-        public Task UpdateAccountAsync(string userId, UpdateContactInfoDto updateData);
+        /// <returns>A task that represents the update operation.</returns>
+        public Task UpdateSalaryAsync(Guid id, UpdateSalaryDto updateData);
 
         /// <summary>
         /// Updates the password.
@@ -74,18 +67,10 @@ namespace RabbitHoleService.Services
         public Task DeleteAsync(Guid id);
 
         /// <summary>
-        /// Deletes a user account.
-        /// </summary>
-        /// <param name="userId">The user id.</param>
-        /// <param name="person">The person associated with the user account.</param>
-        /// <returns>The result of the delete operation.</returns>
-        public Task DeleteAccountAsync(string userId, IPerson? person = null);
-
-        /// <summary>
         /// Finds persons that match a certain criteria.
         /// </summary>
         /// <param name="request">The search request.</param>
         /// <returns>The persons.</returns>
-        public Task<IEnumerable<CustomerDto>> FindPersonsAsync(PersonSearchRequestDto request);
+        public Task<IEnumerable<StaffDto>> FindPersonsAsync(PersonSearchRequestDto request);
     }
 }

@@ -35,7 +35,7 @@ namespace RabbitHoleService.Objects
         public string Author { get; set; }
 
         /// <summary>
-        /// Gets or sets te cost.
+        /// Gets or sets the cost.
         /// </summary>
         [Range(0.01, 10000, ErrorMessage = "The cost must be between 0.01 and 10,000.")]
         public decimal Cost { get; set; }

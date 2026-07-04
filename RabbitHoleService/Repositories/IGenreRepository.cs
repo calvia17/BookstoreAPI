@@ -1,4 +1,6 @@
-﻿using RabbitHoleService.Objects;
+﻿using Microsoft.EntityFrameworkCore;
+using RabbitHoleService.Models;
+using RabbitHoleService.Objects;
 
 namespace RabbitHoleService.Repositories
 {

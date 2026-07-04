@@ -238,7 +238,7 @@ namespace RabbitHoleService.Services
         /// <returns>The books.</returns>
         public async Task<IEnumerable<BookDto>> FindBooksAsync(BookSearchRequestDto request)
         {
-            ArgumentNullException.ThrowIfNull(request, nameof(request));
+            ArgumentNullException.ThrowIfNull(request);
             var books = await this.unitOfWork.Books.FindBooksAsync(request.Isbn, request.Name, request.Author, request.MinimumCost, request.MaximumCost, request.Genres);
             return books.Select(BookModelDtoMapper.ToDto).ToList();
         }

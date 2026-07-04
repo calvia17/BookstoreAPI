@@ -3,9 +3,9 @@
 namespace RabbitHoleService.Objects
 {
     /// <summary>
-    /// The customer class.
+    /// The staff class.
     /// </summary>
-    public class Customer : IPerson
+    public class Staff : IPerson
     {
         /// <summary>
         /// Gets or sets the id.
@@ -47,27 +47,29 @@ namespace RabbitHoleService.Objects
         public string Email { get; set; }
 
         /// <summary>
+        /// Gets or sets the cost.
+        /// </summary>
+        [Range(0.01, 10000, ErrorMessage = "The salary must be between 0.01 and 10,000.")]
+        public decimal Salary { get; set; }
+
+        /// <summary>
         /// A value indicating whether the customer is deleted.
         /// </summary>
         public bool IsDeleted { get; set; }
 
         /// <summary>
-        /// Gets the orders
-        /// </summary>
-        public ICollection<Order> Orders { get; } = null!;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Customer" /> class.
+        /// Initializes a new instance of the <see cref="Staff" /> class.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="phoneNumber">The phone number.</param>
         /// <param name="email">The email.</param>
-        public Customer(string name, string phoneNumber, string email)
+        /// <param name="salary">The salary.</param>
+        public Staff(string name, string phoneNumber, string email, decimal salary)
         {
             this.Name = name;
             this.PhoneNumber = phoneNumber;
             this.Email = email;
-            this.Orders = new List<Order>();
+            this.Salary = salary;
         }
     }
 }

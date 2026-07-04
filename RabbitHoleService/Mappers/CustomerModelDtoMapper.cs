@@ -6,7 +6,7 @@ namespace RabbitHoleService.Mappers
     /// <summary>
     /// The customer model dto mapper.
     /// </summary>
-    public class CustomerModelDtoMapper
+    public class CustomerModelDtoMapper : IPersonModelDtoMapper<Customer, CustomerDto>
     {
         /// <summary>
         /// Maps a customer to its dto.

@@ -26,6 +26,11 @@ namespace RabbitHoleService.Models
         public DbSet<Customer> Customers { get; set; }
 
         /// <summary>
+        /// Gets or sets the staff.
+        /// </summary>
+        public DbSet<Staff> Staff { get; set; }
+
+        /// <summary>
         /// Gets or sets the orders.
         /// </summary>
         public DbSet<Order> Orders { get; set; }
@@ -44,7 +49,8 @@ namespace RabbitHoleService.Models
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<ApplicationUser>().HasIndex(u => u.PhoneNumber).IsUnique();
+            modelBuilder.Entity<ApplicationUser>().HasIndex(u => u.PhoneNumber).IsUnique().HasFilter("[IsDeleted] = 0");
+            modelBuilder.Entity<ApplicationUser>().HasIndex(u => u.Email).IsUnique().HasFilter("[IsDeleted] = 0");
             modelBuilder.Entity<ApplicationUser>().Property(u => u.IsDeleted).IsRequired();
 
             modelBuilder.Entity<Book>().HasKey(b => b.Id);
@@ -59,7 +65,7 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<Book>().Property(b => b.IsDeleted).IsRequired();
 
             modelBuilder.Entity<Customer>().HasKey(c => c.Id);
-            modelBuilder.Entity<Customer>().HasOne(c => c.User).WithOne().HasForeignKey<Customer>(c => c.UserId).IsRequired().OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Customer>().HasOne(c => c.User).WithOne().HasForeignKey<Customer>(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<Customer>().HasIndex(c => c.UserId).IsUnique().HasFilter("[UserId] IS NOT NULL").HasDatabaseName("Customers_UserId");
             modelBuilder.Entity<Customer>().Property(c => c.Name).HasMaxLength(200).IsRequired();
             modelBuilder.Entity<Customer>().HasIndex(c => c.Name).HasDatabaseName("Customers_Name");
@@ -68,6 +74,18 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<Customer>().Property(c => c.Email).HasMaxLength(255).IsRequired();
             modelBuilder.Entity<Customer>().HasIndex(c => c.Email).IsUnique().HasFilter("[IsDeleted] = 0").HasDatabaseName("Customers_Email");
             modelBuilder.Entity<Customer>().Property(c => c.IsDeleted).IsRequired();
+
+            modelBuilder.Entity<Staff>().HasKey(c => c.Id);
+            modelBuilder.Entity<Staff>().HasOne(c => c.User).WithOne().HasForeignKey<Staff>(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Staff>().HasIndex(c => c.UserId).IsUnique().HasFilter("[UserId] IS NOT NULL").HasDatabaseName("Staff_UserId");
+            modelBuilder.Entity<Staff>().Property(c => c.Name).HasMaxLength(200).IsRequired();
+            modelBuilder.Entity<Staff>().HasIndex(c => c.Name).HasDatabaseName("Staff_Name");
+            modelBuilder.Entity<Staff>().Property(c => c.PhoneNumber).HasMaxLength(20).IsRequired();
+            modelBuilder.Entity<Staff>().HasIndex(c => c.PhoneNumber).IsUnique().HasFilter("[IsDeleted] = 0").HasDatabaseName("Staff_PhoneNumber");
+            modelBuilder.Entity<Staff>().Property(c => c.Email).HasMaxLength(255).IsRequired();
+            modelBuilder.Entity<Staff>().HasIndex(c => c.Email).IsUnique().HasFilter("[IsDeleted] = 0").HasDatabaseName("Staff_Email");
+            modelBuilder.Entity<Staff>().Property(c => c.Salary).HasPrecision(18, 2).IsRequired();
+            modelBuilder.Entity<Staff>().Property(c => c.IsDeleted).IsRequired();
 
             modelBuilder.Entity<Order>().HasKey(o => o.Id);
             modelBuilder.Entity<Order>().Property(o => o.IdempotencyKey).IsRequired();
@@ -96,6 +114,7 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.Token).IsUnique().HasDatabaseName("RefreshTokens_Token");
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.ExpiryDate).IsRequired();
             modelBuilder.Entity<RefreshToken>().HasOne(rt => rt.User).WithMany().HasForeignKey(rt => rt.UserId).IsRequired();
+            modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.UserId);
 
             // Seed the genre data from enum GenreType
             var genreSeeds = Enum.GetValues(typeof(GenreType))

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
+using RabbitHoleService.Objects;
 using RabbitHoleService.Repositories;
 
 namespace RabbitHoleService.Data
@@ -21,7 +22,12 @@ namespace RabbitHoleService.Data
         /// <summary>
         /// The customers.
         /// </summary>
-        public ICustomerRepository Customers { get; }
+        public IPersonRepository<Customer> Customers { get; }
+
+        /// <summary>
+        /// The staff.
+        /// </summary>
+        public IPersonRepository<Staff> Staff { get; }
 
         /// <summary>
         /// The orders.

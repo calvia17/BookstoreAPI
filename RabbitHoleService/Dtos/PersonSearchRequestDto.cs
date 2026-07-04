@@ -4,9 +4,9 @@ using System.ComponentModel.DataAnnotations;
 namespace RabbitHoleService.Dtos
 {
     /// <summary>
-    /// The customer search request request dto.
+    /// The person search request dto.
     /// </summary>
-    public class CustomerSearchRequestDto
+    public class PersonSearchRequestDto
     {
         private string? name;
         private string? phoneNumber;
@@ -15,7 +15,7 @@ namespace RabbitHoleService.Dtos
         /// <summary>
         /// Gets the name.
         /// </summary>
-        [StringLength(200, ErrorMessage = "The customer name should not exceed 200 characters.")]
+        [StringLength(200, ErrorMessage = "The user name should not exceed 200 characters.")]
         public string? Name
         {
             get => this.name;

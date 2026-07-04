@@ -216,6 +216,10 @@ namespace RabbitHoleService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
@@ -226,7 +230,7 @@ namespace RabbitHoleService.Migrations
 
                     b.HasIndex("PhoneNumber")
                         .IsUnique()
-                        .HasFilter("[PhoneNumber] IS NOT NULL");
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -245,6 +249,9 @@ namespace RabbitHoleService.Migrations
                     b.Property<decimal>("Cost")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Isbn")
                         .IsRequired()
@@ -322,6 +329,9 @@ namespace RabbitHoleService.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -333,21 +343,22 @@ namespace RabbitHoleService.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("UserId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
                         .IsUnique()
-                        .HasDatabaseName("Customers_Email");
+                        .HasDatabaseName("Customers_Email")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("Name")
                         .HasDatabaseName("Customers_Name");
 
                     b.HasIndex("PhoneNumber")
                         .IsUnique()
-                        .HasDatabaseName("Customers_PhoneNumber");
+                        .HasDatabaseName("Customers_PhoneNumber")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("UserId")
                         .IsUnique()
@@ -488,6 +499,60 @@ namespace RabbitHoleService.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("RabbitHoleService.Objects.Staff", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("Salary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("Staff_Email")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("Staff_Name");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("Staff_PhoneNumber")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("Staff_UserId")
+                        .HasFilter("[UserId] IS NOT NULL");
+
+                    b.ToTable("Staff");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -582,8 +647,7 @@ namespace RabbitHoleService.Migrations
                     b.HasOne("RabbitHoleService.Objects.ApplicationUser", "User")
                         .WithOne()
                         .HasForeignKey("RabbitHoleService.Objects.Customer", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("User");
                 });
@@ -606,6 +670,16 @@ namespace RabbitHoleService.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RabbitHoleService.Objects.Staff", b =>
+                {
+                    b.HasOne("RabbitHoleService.Objects.ApplicationUser", "User")
+                        .WithOne()
+                        .HasForeignKey("RabbitHoleService.Objects.Staff", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("User");
                 });

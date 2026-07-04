@@ -103,14 +103,14 @@ namespace RabbitHoleService.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (CustomerNotFoundException ex)
+            catch (PersonNotFoundException<Customer> ex)
             {
                 return NotFound(new
                 {
                     Title = "Customer Not Found",
                     Status = StatusCodes.Status404NotFound,
                     Detail = ex.Message,
-                    CustomerId = ex.CustomerId
+                    CustomerId = ex.PersonId
                 });
             }
             catch (BookNotFoundException ex)
@@ -194,14 +194,14 @@ namespace RabbitHoleService.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (CustomerNotFoundException ex)
+            catch (PersonNotFoundException<Customer> ex)
             {
                 return NotFound(new
                 {
                     Title = "Customer Not Found",
                     Status = StatusCodes.Status404NotFound,
                     Detail = ex.Message,
-                    CustomerId = ex.CustomerId
+                    CustomerId = ex.PersonId
                 });
             }
             catch (BookNotFoundException ex)
@@ -323,14 +323,14 @@ namespace RabbitHoleService.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (CustomerNotFoundException ex)
+            catch (PersonNotFoundException<Customer> ex)
             {
                 return NotFound(new
                 {
                     Title = "Customer Not Found",
                     Status = StatusCodes.Status404NotFound,
                     Detail = ex.Message,
-                    CustomerId = ex.CustomerId
+                    CustomerId = ex.PersonId
                 });
             }
         }
@@ -361,14 +361,14 @@ namespace RabbitHoleService.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (CustomerNotFoundException ex)
+            catch (PersonNotFoundException<Customer> ex)
             {
                 return NotFound(new
                 {
                     Title = "Customer Not Found",
                     Status = StatusCodes.Status404NotFound,
                     Detail = ex.Message,
-                    CustomerId = ex.CustomerId
+                    CustomerId = ex.PersonId
                 });
             }
         }
