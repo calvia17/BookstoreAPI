@@ -13,6 +13,11 @@
         /// <summary>
         /// Account locked due to multiple failed login attempts.
         /// </summary>
-        AccountLocked
+        AccountLocked,
+
+        /// <summary>
+        /// Internal error.
+        /// </summary>
+        InternalError
     }
 }

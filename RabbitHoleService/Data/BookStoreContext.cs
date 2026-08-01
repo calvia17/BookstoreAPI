@@ -115,6 +115,7 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.FamilyId).IsRequired();
             modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.FamilyId).HasDatabaseName("RefreshTokens_FamilyId");
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.JwtId).IsRequired();
+             modelBuilder.Entity<RefreshToken>().Property(rt => rt.JwtExpiry).IsRequired();
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.Token).HasMaxLength(64).IsRequired().UseCollation("Latin1_General_CS_AS");
             modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.Token).IsUnique().HasDatabaseName("RefreshTokens_Token");
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.ExpiryDate).IsRequired();

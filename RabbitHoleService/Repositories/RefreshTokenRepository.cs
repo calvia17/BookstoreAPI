@@ -75,7 +75,7 @@ namespace RabbitHoleService.Repositories
         public async Task<IEnumerable<RefreshToken>> RevokeTokensByUserId(string userId, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(userId);
-            var tokens = await this.context.RefreshTokens.Where(t => t.UserId == userId && !t.IsUsed).ToListAsync(cancellationToken);
+            var tokens = await this.context.RefreshTokens.Where(t => t.UserId == userId).ToListAsync(cancellationToken);
             foreach (var token in tokens)
             {
                 token.IsUsed = true;
@@ -92,7 +92,7 @@ namespace RabbitHoleService.Repositories
         /// <returns>The revoked refresh tokens.</returns>
         public async Task<IEnumerable<RefreshToken>> RevokeTokensByFamilyId(Guid familyId, CancellationToken cancellationToken = default)
         {
-            var tokens = await this.context.RefreshTokens.Where(t => t.FamilyId == familyId && !t.IsUsed).ToListAsync(cancellationToken);
+            var tokens = await this.context.RefreshTokens.Where(t => t.FamilyId == familyId).ToListAsync(cancellationToken);
             foreach (var token in tokens)
             {
                 token.IsUsed = true;

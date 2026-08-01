@@ -12,7 +12,7 @@ using RabbitHoleService.Models;
 namespace RabbitHoleService.Migrations
 {
     [DbContext(typeof(BookStoreContext))]
-    [Migration("20260731010014_InitialMigration")]
+    [Migration("20260801133626_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -492,6 +492,9 @@ namespace RabbitHoleService.Migrations
 
                     b.Property<bool>("IsUsed")
                         .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("JwtExpiry")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("JwtId")
                         .HasColumnType("uniqueidentifier");

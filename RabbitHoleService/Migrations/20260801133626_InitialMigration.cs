@@ -219,6 +219,7 @@ namespace RabbitHoleService.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     FamilyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     JwtId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    JwtExpiry = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     Token = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false, collation: "Latin1_General_CS_AS"),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     ExpiryDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),

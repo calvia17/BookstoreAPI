@@ -490,6 +490,9 @@ namespace RabbitHoleService.Migrations
                     b.Property<bool>("IsUsed")
                         .HasColumnType("bit");
 
+                    b.Property<DateTimeOffset>("JwtExpiry")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<Guid>("JwtId")
                         .HasColumnType("uniqueidentifier");
 

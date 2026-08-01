@@ -20,6 +20,7 @@ namespace RabbitHoleService.Services
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IUnitOfWork unitOfWork;
         private readonly ITokenCacheService tokenCacheService;
+        private readonly IConfigurationSection jwtSettings;
 
         /// <summary>
         /// Initializes the authentication service.
@@ -38,6 +39,7 @@ namespace RabbitHoleService.Services
             this.userManager = userManager;
             this.unitOfWork = unitOfWork;
             this.tokenCacheService = tokenCacheService;
+            this.jwtSettings = this.configuration.GetSection("Jwt");
         }
 
         /// <summary>
@@ -72,11 +74,21 @@ namespace RabbitHoleService.Services
                     null);
             }
 
-            var jwtId = Guid.NewGuid();
-            var accessToken = await GenerateAccessToken(user, jwtId);
+            var expiry = DateTimeOffset.UtcNow.AddMinutes(Convert.ToDouble(this.jwtSettings["ExpiresInMinutes"]));
+            var accessToken = await GenerateAccessToken(user, expiry);
+            var jtiClaim = accessToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti);
+            if (jtiClaim == null || !Guid.TryParse(jtiClaim.Value, out var jwtId))
+            {
+                return new AuthenticationResult(
+                    false,
+                    AuthenticationFailure.InternalError,
+                    "Internal Error.",
+                    null);
+            }
+
             var refreshToken = GenerateRefreshToken();
             var hashedRefreshToken = HashRefreshToken(refreshToken);
-            this.unitOfWork.RefreshTokens.Add(new RefreshToken(hashedRefreshToken, user.Id, DateTimeOffset.UtcNow.AddDays(14), Guid.NewGuid(), jwtId));
+            this.unitOfWork.RefreshTokens.Add(new RefreshToken(hashedRefreshToken, user.Id, DateTimeOffset.UtcNow.AddDays(14), Guid.NewGuid(), jwtId, expiry));
             await this.unitOfWork.SaveChangesAsync(cancellationToken);
             var accessTokenString = new JwtSecurityTokenHandler().WriteToken(accessToken);
             return new AuthenticationResult(true, null, null, new Tokens(accessTokenString, refreshToken));
@@ -100,7 +112,7 @@ namespace RabbitHoleService.Services
                 await this.unitOfWork.SaveChangesAsync(cancellationToken);
 
                 // Blacklist the associated access token
-                var blacklistTokenRequest = new BlacklistTokenRequestDto(existingToken.JwtId, existingToken.ExpiryDate);
+                var blacklistTokenRequest = new BlacklistTokenRequestDto(existingToken.JwtId, existingToken.JwtExpiry);
                 await this.tokenCacheService.BlacklistTokensAsync([blacklistTokenRequest], cancellationToken);
             }
         }
@@ -119,7 +131,7 @@ namespace RabbitHoleService.Services
                 await this.unitOfWork.SaveChangesAsync(cancellationToken);
 
                 // Blacklist all associated access tokens
-                var blacklistTokenRequests = tokens.Select(token => new BlacklistTokenRequestDto(token.JwtId, token.ExpiryDate));
+                var blacklistTokenRequests = tokens.Select(token => new BlacklistTokenRequestDto(token.JwtId, token.JwtExpiry));
                 await this.tokenCacheService.BlacklistTokensAsync(blacklistTokenRequests, cancellationToken);
             }
         }
@@ -151,7 +163,7 @@ namespace RabbitHoleService.Services
                         await this.unitOfWork.SaveChangesAsync(cancellationToken);
 
                         // Blacklist all associated access tokens
-                        var blacklistTokenRequests = tokens.Select(token => new BlacklistTokenRequestDto(token.JwtId, token.ExpiryDate));
+                        var blacklistTokenRequests = tokens.Select(token => new BlacklistTokenRequestDto(token.JwtId, token.JwtExpiry)).ToList();
                         await this.tokenCacheService.BlacklistTokensAsync(blacklistTokenRequests, cancellationToken);
                     }
 
@@ -160,20 +172,24 @@ namespace RabbitHoleService.Services
                 else if (existingToken.UserId == userId && existingToken.User != null)
                 {
                     // Valid refresh token - generate new access and refresh tokens
-                    var jwtId = Guid.NewGuid();
-                    var accessToken = await GenerateAccessToken(existingToken.User, jwtId);
-                    var newRefreshToken = GenerateRefreshToken();
-                    var hashedNewRefreshToken = HashRefreshToken(newRefreshToken);
-                    this.unitOfWork.RefreshTokens.Add(new RefreshToken(hashedNewRefreshToken, userId, DateTimeOffset.UtcNow.AddDays(14), existingToken.FamilyId, jwtId));
-                    this.unitOfWork.RefreshTokens.RevokeToken(existingToken);
-                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                    var expiry = DateTimeOffset.UtcNow.AddMinutes(Convert.ToDouble(this.jwtSettings["ExpiresInMinutes"]));
+                    var accessToken = await GenerateAccessToken(existingToken.User, expiry);
+                    var jtiClaim = accessToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti);
+                    if (jtiClaim != null && Guid.TryParse(jtiClaim.Value, out var jwtId))
+                    {
+                        var newRefreshToken = GenerateRefreshToken();
+                        var hashedNewRefreshToken = HashRefreshToken(newRefreshToken);
+                        this.unitOfWork.RefreshTokens.Add(new RefreshToken(hashedNewRefreshToken, userId, DateTimeOffset.UtcNow.AddDays(14), existingToken.FamilyId, jwtId, expiry));
+                        this.unitOfWork.RefreshTokens.RevokeToken(existingToken);
+                        await this.unitOfWork.SaveChangesAsync(cancellationToken);
 
-                    // Cache the new tokens for a tiny grace period to allow valid concurrent requests to succeed.
-                    var accessTokenString = new JwtSecurityTokenHandler().WriteToken(accessToken);
-                    var tokens = new Tokens(accessTokenString, newRefreshToken);
-                    await this.tokenCacheService.CacheTokensForGracePeriodAsync(existingToken.Id, tokens, cancellationToken);
+                        // Cache the new tokens for a tiny grace period to allow valid concurrent requests to succeed.
+                        var accessTokenString = new JwtSecurityTokenHandler().WriteToken(accessToken);
+                        var tokens = new Tokens(accessTokenString, newRefreshToken);
+                        await this.tokenCacheService.CacheTokensForGracePeriodAsync(existingToken.Id, tokens, cancellationToken);
 
-                    return new RefreshTokenResult(true, tokens);
+                        return new RefreshTokenResult(true, tokens);
+                    }
                 }
             }
             
@@ -198,10 +214,9 @@ namespace RabbitHoleService.Services
             return Convert.ToBase64String(hashBytes);
         }
 
-        private async Task<JwtSecurityToken> GenerateAccessToken(ApplicationUser user, Guid jwtId)
+        private async Task<JwtSecurityToken> GenerateAccessToken(ApplicationUser user, DateTimeOffset expiration)
         {
-            var jwtSettings = this.configuration.GetSection("Jwt");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.jwtSettings["Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var userRoles = await this.userManager.GetRolesAsync(user);
             var authClaims = new List<Claim>
@@ -209,16 +224,16 @@ namespace RabbitHoleService.Services
                 new Claim(ClaimTypes.Name, user.UserName!),
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                new Claim(JwtRegisteredClaimNames.Jti, jwtId.ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
 
             var token = new JwtSecurityToken(
-                issuer: jwtSettings["Issuer"],
-                audience: jwtSettings["Audience"],
+                issuer: this.jwtSettings["Issuer"],
+                audience: this.jwtSettings["Audience"],
                 claims: authClaims,
-                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpiresInMinutes"])),
+                expires: expiration.UtcDateTime,
                 signingCredentials: creds);
             return token;
         }

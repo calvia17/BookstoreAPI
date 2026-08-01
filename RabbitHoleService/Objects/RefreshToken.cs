@@ -24,6 +24,11 @@ namespace RabbitHoleService.Objects
         public Guid JwtId { get; set; }
 
         /// <summary>
+        /// Gets or sets the JWT expiry date.
+        /// </summary>
+        public DateTimeOffset JwtExpiry { get; set; }
+
+        /// <summary>
         /// The token.
         /// </summary>
         [Required(ErrorMessage = "The refresh token is required.")]
@@ -60,13 +65,14 @@ namespace RabbitHoleService.Objects
         /// <param name="expiryDate">The expiry date.</param>
         /// <param name="familyId">The family id.</param>
         /// <param name="jwtId">The jwt id.</param>
-        public RefreshToken(string token, string userId, DateTimeOffset expiryDate, Guid familyId, Guid jwtId)
+        public RefreshToken(string token, string userId, DateTimeOffset expiryDate, Guid familyId, Guid jwtId, DateTimeOffset jwtExpiry)
         {
             this.Token = token;
             this.UserId = userId;
             this.ExpiryDate = expiryDate;
             this.FamilyId = familyId;
             this.JwtId = jwtId;
+            this.JwtExpiry = jwtExpiry;
         }
     }
 }

@@ -67,6 +67,15 @@ namespace RabbitHoleService.Controllers
                         Detail = authResult.ErrorDescription
                     });
                 }
+                else if (authResult.ErrorCode == AuthenticationFailure.InternalError)
+                {
+                    return Unauthorized(new
+                    {
+                        Title = "Internal Error",
+                        Status = StatusCodes.Status401Unauthorized,
+                        Detail = authResult.ErrorDescription
+                    });
+                }
             }
 
             return Unauthorized(new

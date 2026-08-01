@@ -1,4 +1,5 @@
-﻿using RabbitHoleService.Services;
+﻿using Microsoft.AspNetCore.Authorization;
+using RabbitHoleService.Services;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace RabbitHoleService.Middleware
@@ -27,7 +28,7 @@ namespace RabbitHoleService.Middleware
         /// <returns>A task that represents the completion of the middleware execution.</returns>
         public async Task InvokeAsync(HttpContext context, ITokenCacheService tokenCacheService)
         {
-            if (context.User.Identity?.IsAuthenticated == true)
+            if (context.User.Identity?.IsAuthenticated == true && context.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() == null)
             {
                 var jtiClaim = context.User.FindFirst(JwtRegisteredClaimNames.Jti);
                 if (jtiClaim == null || !Guid.TryParse(jtiClaim.Value, out var jwtId))
