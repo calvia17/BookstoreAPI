@@ -43,7 +43,7 @@ namespace RabbitHoleService.Controllers
             {
                 return Ok(new 
                 { 
-                    token = new JwtSecurityTokenHandler().WriteToken(authResult.Tokens!.AccessToken), 
+                    token = authResult.Tokens!.AccessToken, 
                     refreshToken = authResult.Tokens!.RefreshToken
                 });
             }
@@ -134,7 +134,7 @@ namespace RabbitHoleService.Controllers
                 var result = await this.authService.RefreshTokenAsync(userId, refreshToken.RefreshToken, cancellationToken);
                 if (result.Succeeded)
                 {
-                    return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(result.Tokens!.AccessToken), refreshToken = result.Tokens!.RefreshToken });
+                    return Ok(new { token = result.Tokens!.AccessToken, refreshToken = result.Tokens!.RefreshToken });
                 }
             }
             return Unauthorized(new

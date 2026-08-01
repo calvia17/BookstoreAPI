@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using RabbitHoleService.Data;
 using RabbitHoleService.Dtos;
@@ -72,12 +73,13 @@ namespace RabbitHoleService.Services
             }
 
             var jwtId = Guid.NewGuid();
-            var accesstoken = await GenerateAccessToken(user, jwtId);
+            var accessToken = await GenerateAccessToken(user, jwtId);
             var refreshToken = GenerateRefreshToken();
             var hashedRefreshToken = HashRefreshToken(refreshToken);
             this.unitOfWork.RefreshTokens.Add(new RefreshToken(hashedRefreshToken, user.Id, DateTimeOffset.UtcNow.AddDays(14), Guid.NewGuid(), jwtId));
             await this.unitOfWork.SaveChangesAsync(cancellationToken);
-            return new AuthenticationResult(true, null, null, new Tokens(accesstoken, refreshToken));
+            var accessTokenString = new JwtSecurityTokenHandler().WriteToken(accessToken);
+            return new AuthenticationResult(true, null, null, new Tokens(accessTokenString, refreshToken));
         }
 
         /// <summary>
@@ -167,7 +169,8 @@ namespace RabbitHoleService.Services
                     await this.unitOfWork.SaveChangesAsync(cancellationToken);
 
                     // Cache the new tokens for a tiny grace period to allow valid concurrent requests to succeed.
-                    var tokens = new Tokens(accessToken, newRefreshToken);
+                    var accessTokenString = new JwtSecurityTokenHandler().WriteToken(accessToken);
+                    var tokens = new Tokens(accessTokenString, newRefreshToken);
                     await this.tokenCacheService.CacheTokensForGracePeriodAsync(existingToken.Id, tokens, cancellationToken);
 
                     return new RefreshTokenResult(true, tokens);

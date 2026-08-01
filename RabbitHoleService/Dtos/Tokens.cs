@@ -7,5 +7,5 @@ namespace RabbitHoleService.Dtos
     /// </summary>
     /// <param name="AccessToken">The access token.</param>
     /// <param name="RefreshToken">The refresh token.</param>
-    public record Tokens(JwtSecurityToken AccessToken, string RefreshToken);
+    public record Tokens(string AccessToken, string RefreshToken);
 }
