@@ -23,10 +23,11 @@ namespace RabbitHoleService.Repositories
         /// <summary>
         /// Gets all the genres.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The genres.</returns>
-        public async Task<IEnumerable<Genre>> GetAllAsync()
+        public async Task<IEnumerable<Genre>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var genres = await this.context.Genres.AsNoTracking().ToListAsync();
+            var genres = await this.context.Genres.AsNoTracking().ToListAsync(cancellationToken);
             return genres;
         }
     }

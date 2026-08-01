@@ -23,14 +23,15 @@ namespace RabbitHoleService.Repositories
         /// <summary>
         /// Gets all the orders.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The orders.</returns>
-        public async Task<IEnumerable<Order>> GetAllAsync()
+        public async Task<IEnumerable<Order>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var orders = await this.context.Orders
                         .AsNoTracking()
                         .Include(o => o.BookOrders)
                             .ThenInclude(bo => bo.Book)
-                        .ToListAsync();
+                        .ToListAsync(cancellationToken);
             return orders;
         }
 
@@ -39,8 +40,9 @@ namespace RabbitHoleService.Repositories
         /// </summary>
         /// <param name="id">The id.</param>
         /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The order.</returns>
-        public async Task<Order?> GetAsync(Guid id, bool trackChanges = false)
+        public async Task<Order?> GetAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
             IQueryable<Order> ordersQuery = this.context.Orders;
             if (!trackChanges)
@@ -52,7 +54,7 @@ namespace RabbitHoleService.Repositories
                         .Include(o => o.Customer)
                         .Include(o => o.BookOrders)
                             .ThenInclude(bo => bo.Book)
-                        .FirstOrDefaultAsync(o => o.Id == id);
+                        .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
             return order;
         }
 
@@ -60,14 +62,15 @@ namespace RabbitHoleService.Repositories
         /// Gets the order by the idempotency key.
         /// </summary>
         /// <param name="idempotencyKey">The idempotency key.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The order.</returns>
-        public async Task<Order?> GetByIdempotencyKeyAsync(Guid idempotencyKey)
+        public async Task<Order?> GetByIdempotencyKeyAsync(Guid idempotencyKey, CancellationToken cancellationToken = default)
         {
             var order = await this.context.Orders
                         .AsNoTracking()
                         .Include(o => o.BookOrders)
                             .ThenInclude(bo => bo.Book)
-                        .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey);
+                        .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey, cancellationToken);
             return order;
         }
 
@@ -75,15 +78,16 @@ namespace RabbitHoleService.Repositories
         /// Gets the orders by customer id.
         /// </summary>
         /// <param name="customerId">The customer id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The orders.</returns>
-        public async Task<IEnumerable<Order>> GetByCustomerIdAsync(Guid customerId)
+        public async Task<IEnumerable<Order>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken = default)
         {
             var order = await this.context.Orders
                         .AsNoTracking()
                         .Include(o => o.BookOrders)
                             .ThenInclude(bo => bo.Book)
                         .Where(o => o.CustomerId == customerId)
-                        .ToListAsync();
+                        .ToListAsync(cancellationToken);
             return order;
         }
 

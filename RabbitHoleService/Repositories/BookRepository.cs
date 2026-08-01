@@ -29,14 +29,15 @@ namespace RabbitHoleService.Repositories
         /// <summary>
         /// Gets all the books.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The books.</returns>
-        public async Task<IEnumerable<Book>> GetAllAsync()
+        public async Task<IEnumerable<Book>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var books = await this.context.Books
                         .AsNoTracking()
                         .Where(b => !b.IsDeleted)
                         .Include(b => b.BookGenres)
-                        .ToListAsync();
+                        .ToListAsync(cancellationToken);
             return books;
         }
 
@@ -45,8 +46,9 @@ namespace RabbitHoleService.Repositories
         /// </summary>
         /// <param name="id">The id.</param>
         /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The book.</returns>
-        public async Task<Book?> GetAsync(Guid id, bool trackChanges = false)
+        public async Task<Book?> GetAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
             IQueryable<Book> booksQuery = this.context.Books;
             if (!trackChanges)
@@ -56,7 +58,7 @@ namespace RabbitHoleService.Repositories
 
             var book = await booksQuery
                         .Include(b => b.BookGenres)
-                        .FirstOrDefaultAsync(b => !b.IsDeleted && b.Id == id);
+                        .FirstOrDefaultAsync(b => !b.IsDeleted && b.Id == id, cancellationToken);
             return book;
         }
 
@@ -65,8 +67,9 @@ namespace RabbitHoleService.Repositories
         /// </summary>
         /// <param name="ids">The ids.</param>
         /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The books.</returns>
-        public async Task<IEnumerable<Book>> GetAsync(HashSet<Guid> ids, bool trackChanges = false)
+        public async Task<IEnumerable<Book>> GetAsync(HashSet<Guid> ids, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
             IQueryable<Book> booksQuery = this.context.Books;
             if (!trackChanges)
@@ -77,7 +80,7 @@ namespace RabbitHoleService.Repositories
             var books = await booksQuery
                         .Where(b => !b.IsDeleted && ids.Contains(b.Id))
                         .Include(b => b.BookGenres)
-                        .ToListAsync();
+                        .ToListAsync(cancellationToken);
             return books;
         }
 
@@ -85,13 +88,14 @@ namespace RabbitHoleService.Repositories
         /// Gets the book by the isbn.
         /// </summary>
         /// <param name="isbn">The isbn.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The book.</returns>
-        public async Task<Book?> GetByIsbnAsync(string isbn)
+        public async Task<Book?> GetByIsbnAsync(string isbn, CancellationToken cancellationToken = default)
         {
             var book = await this.context.Books
                         .AsNoTracking()
                         .Include(b => b.BookGenres)
-                        .FirstOrDefaultAsync(b => !b.IsDeleted && b.Isbn == isbn);
+                        .FirstOrDefaultAsync(b => !b.IsDeleted && b.Isbn == isbn, cancellationToken);
             return book;
         }
 
@@ -99,21 +103,36 @@ namespace RabbitHoleService.Repositories
         /// Gets the books by the isbns.
         /// </summary>
         /// <param name="isbns">The isbns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The books.</returns>
-        public async Task<IEnumerable<Book>> GetByIsbnsAsync(HashSet<string> isbns)
+        public async Task<IEnumerable<Book>> GetByIsbnsAsync(HashSet<string> isbns, CancellationToken cancellationToken = default)
         {
             var books = await this.context.Books
                         .AsNoTracking()
                         .Where(b => !b.IsDeleted && isbns.Contains(b.Isbn))
                         .Include(b => b.BookGenres)
-                        .ToListAsync();
+                        .ToListAsync(cancellationToken);
             return books;
+        }
+
+        /// <summary>
+        /// Gets the maximum last modified date of all books.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The maximum last modified date.</returns>
+        public async Task<DateTimeOffset> GetMaxLastModifiedAsync(CancellationToken cancellationToken = default)
+        {
+            var maxLastModified = await this.context.Books
+                .AsNoTracking()
+                .Where(b => !b.IsDeleted)
+                .MaxAsync(b => (DateTimeOffset?)b.LastModified, cancellationToken);
+            return maxLastModified ?? DateTimeOffset.MinValue;
         }
 
         /// <summary>
         /// Creates a new book.
         /// </summary>
-        /// <param name="newBookData">The new book.</param>
+        /// <param name="newBookData">The new book data.</param>
         public void Add(Book newBookData)
         {
             ArgumentNullException.ThrowIfNull(newBookData);
@@ -139,8 +158,9 @@ namespace RabbitHoleService.Repositories
         /// <param name="minimumCost">The minimumCost.</param>
         /// <param name="maximumCost">The maximumCost.</param>
         /// <param name = "genreIds" > The genreIds</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The books.</returns>
-        public async Task<IEnumerable<Book>> FindBooksAsync(string? isbn, string? name, string? author, decimal? minimumCost, decimal? maximumCost, HashSet<GenreType>? genreIds)
+        public async Task<IEnumerable<Book>> FindBooksAsync(string? isbn, string? name, string? author, decimal? minimumCost, decimal? maximumCost, HashSet<GenreType>? genreIds, CancellationToken cancellationToken = default)
         {
             var books = this.context.Books.AsNoTracking().Where(b => !b.IsDeleted).Include(b => b.BookGenres).AsQueryable();
             if (!string.IsNullOrEmpty(isbn))
@@ -169,7 +189,7 @@ namespace RabbitHoleService.Repositories
                 books = books.Where(b => b.BookGenres.Any(bg => genreIds.Contains(bg.GenreId)));
             }
 
-            return await books.ToListAsync();
+            return await books.ToListAsync(cancellationToken);
         }
     }
 }

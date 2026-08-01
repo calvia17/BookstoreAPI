@@ -30,14 +30,15 @@ namespace RabbitHoleService.Controllers
         /// Logs in a user.
         /// </summary>
         /// <param name="loginData">The login data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the login operation.</returns>
         [AllowAnonymous]
         [HttpPost("login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Login([FromBody] LoginDto loginData)
+        public async Task<IActionResult> Login([FromBody] LoginDto loginData, CancellationToken cancellationToken)
         {
-            AuthenticationResult authResult = await this.authService.LoginAsync(loginData);
+            AuthenticationResult authResult = await this.authService.LoginAsync(loginData, cancellationToken);
             if (authResult.Succeeded)
             {
                 return Ok(new 
@@ -80,16 +81,17 @@ namespace RabbitHoleService.Controllers
         /// Logs out a user.
         /// </summary>
         /// <param name="refreshToken">The refresh token.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the logout operation.</returns>
         [Authorize]
         [HttpPost("logout")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> Logout([FromBody] RefreshTokenDto refreshToken)
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenDto refreshToken, CancellationToken cancellationToken)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId != null)
             {
-                await this.authService.LogoutAsync(userId, refreshToken);
+                await this.authService.LogoutAsync(userId, refreshToken, cancellationToken);
             }
 
             return Ok();
@@ -98,16 +100,17 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Logs out a user from all sessions.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the logout operation.</returns>
         [Authorize]
         [HttpPost("logout-all")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> LogoutAllSessions()
+        public async Task<IActionResult> LogoutAllSessions(CancellationToken cancellationToken)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId != null)
             {
-                await this.authService.LogoutAllSessionsAsync(userId);
+                await this.authService.LogoutAllSessionsAsync(userId, cancellationToken);
             }
 
             return Ok();
@@ -117,17 +120,18 @@ namespace RabbitHoleService.Controllers
         /// Refreshes the token.
         /// </summary>
         /// <param name="refreshToken">The refresh token.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the token refresh operation.</returns>
         [Authorize]
         [HttpPost("refresh-token")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto refreshToken)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto refreshToken, CancellationToken cancellationToken)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId != null)
             {
-                var result = await this.authService.RefreshTokenAsync(userId, refreshToken.RefreshToken);
+                var result = await this.authService.RefreshTokenAsync(userId, refreshToken.RefreshToken, cancellationToken);
                 if (result.Succeeded)
                 {
                     return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(result.Tokens!.AccessToken), refreshToken = result.Tokens!.RefreshToken });

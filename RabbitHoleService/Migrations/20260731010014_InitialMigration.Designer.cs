@@ -12,7 +12,7 @@ using RabbitHoleService.Models;
 namespace RabbitHoleService.Migrations
 {
     [DbContext(typeof(BookStoreContext))]
-    [Migration("20260704122126_InitialMigration")]
+    [Migration("20260731010014_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -261,6 +261,9 @@ namespace RabbitHoleService.Migrations
                         .HasMaxLength(13)
                         .HasColumnType("nvarchar(13)");
 
+                    b.Property<DateTimeOffset>("LastModified")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(250)
@@ -277,6 +280,9 @@ namespace RabbitHoleService.Migrations
                     b.HasIndex("Isbn")
                         .IsUnique()
                         .HasDatabaseName("Books_Isbn");
+
+                    b.HasIndex("LastModified")
+                        .HasDatabaseName("Books_LastModified");
 
                     b.HasIndex("Name")
                         .HasDatabaseName("Books_Name");
@@ -481,6 +487,15 @@ namespace RabbitHoleService.Migrations
                     b.Property<DateTimeOffset>("ExpiryDate")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("JwtId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Token")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -492,6 +507,9 @@ namespace RabbitHoleService.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FamilyId")
+                        .HasDatabaseName("RefreshTokens_FamilyId");
 
                     b.HasIndex("Token")
                         .IsUnique()

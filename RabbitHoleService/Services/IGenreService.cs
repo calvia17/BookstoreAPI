@@ -11,7 +11,8 @@ namespace RabbitHoleService.Services
         /// <summary>
         /// Gets all the genres.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The customers.</returns>
-        Task<IEnumerable<GenreDto>> GetAllAsync();
+        Task<IEnumerable<GenreDto>> GetAllAsync(CancellationToken cancellationToken = default);
     }
 }

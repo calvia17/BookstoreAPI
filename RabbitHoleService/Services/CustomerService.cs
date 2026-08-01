@@ -4,7 +4,6 @@ using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
 using RabbitHoleService.Objects;
-using RabbitHoleService.Repositories;
 
 namespace RabbitHoleService.Services
 {
@@ -35,17 +34,18 @@ namespace RabbitHoleService.Services
         /// Creates a new customer.
         /// </summary>
         /// <param name="newCustomerData">The new customer data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The book.</returns>
-        public async Task<CustomerDto> CreateAsync(ContactInfoDto? newCustomerData)
+        public async Task<CustomerDto> CreateAsync(ContactInfoDto? newCustomerData, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(newCustomerData);
-            var customerByPhone = await this.unitOfWork.Customers.GetByPhoneAsync(newCustomerData.PhoneNumber);
+            var customerByPhone = await this.unitOfWork.Customers.GetByPhoneAsync(newCustomerData.PhoneNumber, cancellationToken: cancellationToken);
             if (customerByPhone != null)
             {
                 throw new UsedPhoneException(newCustomerData.PhoneNumber);
             }
 
-            var customerByEmail = await this.unitOfWork.Customers.GetByEmailAsync(newCustomerData.Email);
+            var customerByEmail = await this.unitOfWork.Customers.GetByEmailAsync(newCustomerData.Email, cancellationToken: cancellationToken);
             if (customerByEmail != null)
             {
                 throw new UsedEmailException(newCustomerData.Email);
@@ -53,7 +53,7 @@ namespace RabbitHoleService.Services
 
             var customerToCreate = CustomerModelDtoMapper.ToModel(newCustomerData);
             this.unitOfWork.Customers.Add(customerToCreate);
-            await this.unitOfWork.SaveChangesAsync();
+            await this.unitOfWork.SaveChangesAsync(cancellationToken);
             return CustomerModelDtoMapper.ToDto(customerToCreate);
         }
     }

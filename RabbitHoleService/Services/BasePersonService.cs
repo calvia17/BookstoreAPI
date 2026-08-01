@@ -12,7 +12,6 @@ namespace RabbitHoleService.Services
     /// <summary>
     /// The bas person service.
     /// </summary>
-    /// <typeparam name="TDto">The dto type.</typeparam>
     public abstract class BasePersonService<TEntity, TDto>
         where TEntity : class, IPerson
     {
@@ -45,8 +44,9 @@ namespace RabbitHoleService.Services
         /// <summary>
         /// Gets all the persons.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The persons.</returns>
-        public async Task<IEnumerable<TDto>> GetAllAsync()
+        public async Task<IEnumerable<TDto>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var persons = await this.repositoryFactory().GetAllAsync();
             var dtos = persons.Select(x => this.toDto(x)).ToList();
@@ -57,15 +57,16 @@ namespace RabbitHoleService.Services
         /// Gets the person.
         /// </summary>
         /// <param name="id">The id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The person.</returns>
-        public async Task<TDto> GetAsync(Guid id)
+        public async Task<TDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
         {
             if (id == Guid.Empty)
             {
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var person = await this.repositoryFactory().GetAsync(id);
+            var person = await this.repositoryFactory().GetAsync(id, cancellationToken: cancellationToken);
             if (person == null)
             {
                 throw new PersonNotFoundException<TEntity>(id);
@@ -78,10 +79,11 @@ namespace RabbitHoleService.Services
         /// Gets the person by the user id.
         /// </summary>
         /// <param name="userId">The user id.</param>
+        /// <param name="cancellationToken"></param>
         /// <returns>The person.</returns>
-        public async Task<TDto> GetByUserIdAsync(string userId)
+        public async Task<TDto> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default)
         {
-            var person = await this.repositoryFactory().GetByUserIdAsync(userId);
+            var person = await this.repositoryFactory().GetByUserIdAsync(userId, cancellationToken: cancellationToken);
             if (person == null)
             {
                 throw new PersonNotFoundException<TEntity>(userId);
@@ -95,20 +97,21 @@ namespace RabbitHoleService.Services
         /// </summary>
         /// <param name="registerData">The registration data.</param>
         /// <param name="role">The role.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The person.</returns>
-        public async Task<TDto> RegisterAsync(RegisterUserDto registerData, RoleType role)
+        public async Task<TDto> RegisterAsync(RegisterUserDto registerData, RoleType role, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(registerData);
 
-            await using (var transaction = await this.unitOfWork.BeginTransactionAsync())
+            await using (var transaction = await this.unitOfWork.BeginTransactionAsync(cancellationToken))
             {
                 try
                 {
                     TDto? newPerson;
                     var userId = await this.RegisterUserAsync(registerData.Name, registerData.Email, registerData.Password, registerData.PhoneNumber, role);
                     var repository = this.repositoryFactory();
-                    var personByPhone = await repository.GetByPhoneAsync(registerData.PhoneNumber, true);
-                    var personByEmail = await repository.GetByEmailAsync(registerData.Email);
+                    var personByPhone = await repository.GetByPhoneAsync(registerData.PhoneNumber, true, cancellationToken);
+                    var personByEmail = await repository.GetByEmailAsync(registerData.Email, cancellationToken: cancellationToken);
 
                     if (personByPhone != null && personByEmail != null && personByPhone.Id == personByEmail.Id)
                     {
@@ -116,7 +119,7 @@ namespace RabbitHoleService.Services
                         {
                             // Link existing guest customer to the new user account
                             personByPhone.UserId = userId;
-                            await this.unitOfWork.SaveChangesAsync();
+                            await this.unitOfWork.SaveChangesAsync(cancellationToken);
                             newPerson = this.toDto(personByPhone);
                         }
                         else
@@ -133,16 +136,16 @@ namespace RabbitHoleService.Services
                     {
                         var personToCreate = this.CreateEntity(registerData, userId);
                         repository.Add(personToCreate);
-                        await this.unitOfWork.SaveChangesAsync();
+                        await this.unitOfWork.SaveChangesAsync(cancellationToken);
                         newPerson = this.toDto(personToCreate);
                     }
 
-                    await transaction.CommitAsync();
+                    await transaction.CommitAsync(cancellationToken);
                     return newPerson;
                 }
                 catch
                 {
-                    await transaction.RollbackAsync();
+                    await transaction.RollbackAsync(cancellationToken);
                     throw;
                 }
             }
@@ -178,8 +181,9 @@ namespace RabbitHoleService.Services
         /// </summary>
         /// <param name="id">The id.</param>
         /// <param name="updateData">The update data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateAsync(Guid id, UpdateContactInfoDto updateData)
+        public async Task UpdateAsync(Guid id, UpdateContactInfoDto updateData, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(updateData);
 
@@ -189,7 +193,7 @@ namespace RabbitHoleService.Services
             }
 
             // Dont track the entity here to avoid double tracking in UpdateAccountAsync method.
-            var person = await this.repositoryFactory().GetAsync(id);
+            var person = await this.repositoryFactory().GetAsync(id, cancellationToken: cancellationToken);
             if (person == null)
             {
                 throw new PersonNotFoundException<TEntity>(id);
@@ -197,20 +201,20 @@ namespace RabbitHoleService.Services
 
             if (person.UserId != null)
             {
-                await this.UpdateAccountAsync(person.UserId, updateData);
+                await this.UpdateAccountAsync(person.UserId, updateData, cancellationToken);
             }
             else
             {
                 // This is for guest customers who have no associated user account.
-                person = await this.repositoryFactory().GetAsync(id, true);
-                await UpdateProperties(updateData, person!, this.repositoryFactory());
-                await this.unitOfWork.SaveChangesAsync();
+                person = await this.repositoryFactory().GetAsync(id, true, cancellationToken);
+                await UpdateProperties(updateData, person!, this.repositoryFactory(), cancellationToken);
+                await this.unitOfWork.SaveChangesAsync(cancellationToken);
             }
         }
 
-        private async static Task UpdateProperties(UpdateContactInfoDto updateData, TEntity person, IPersonRepository<TEntity> repository)
+        private async static Task UpdateProperties(UpdateContactInfoDto updateData, TEntity person, IPersonRepository<TEntity> repository, CancellationToken cancellationToken)
         {
-            var personByPhone = string.IsNullOrEmpty(updateData.PhoneNumber) ? null : await repository.GetByPhoneAsync(updateData.PhoneNumber);
+            var personByPhone = string.IsNullOrEmpty(updateData.PhoneNumber) ? null : await repository.GetByPhoneAsync(updateData.PhoneNumber, cancellationToken: cancellationToken);
             if (personByPhone != null && personByPhone.Id != person.Id)
             {
                 throw new UpdatePersonFailedException(person.Id, "A user with the same phone number already exists.");
@@ -232,12 +236,13 @@ namespace RabbitHoleService.Services
         /// </summary>
         /// <param name="userId">The user id.</param>
         /// <param name="updateData">The update data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateAccountAsync(string userId, UpdateContactInfoDto updateData)
+        public async Task UpdateAccountAsync(string userId, UpdateContactInfoDto updateData, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(updateData);
 
-            await using (var transaction = await this.unitOfWork.BeginTransactionAsync())
+            await using (var transaction = await this.unitOfWork.BeginTransactionAsync(cancellationToken))
             {
                 try
                 {
@@ -248,13 +253,13 @@ namespace RabbitHoleService.Services
                     }
 
                     var repository = this.repositoryFactory();
-                    var person = await repository.GetByUserIdAsync(userId, true);
+                    var person = await repository.GetByUserIdAsync(userId, true, cancellationToken);
                     if (person == null)
                     {
                         throw new PersonNotFoundException<TEntity>(userId);
                     }
-                    await UpdateProperties(updateData, person, repository);
 
+                    await UpdateProperties(updateData, person, repository, cancellationToken);
                     if (!string.IsNullOrEmpty(updateData.Name))
                     {
                         user.Name = updateData.Name;
@@ -271,12 +276,12 @@ namespace RabbitHoleService.Services
                         throw new UpdatePersonFailedException(userId,string.Join("\n", result.Errors.Select(e => e.Description)));
                     }
 
-                    await this.unitOfWork.SaveChangesAsync();
-                    await transaction.CommitAsync();
+                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
                 }
                 catch
                 {
-                    await transaction.RollbackAsync();
+                    await transaction.RollbackAsync(cancellationToken);
                     throw;
                 }
             }
@@ -308,16 +313,17 @@ namespace RabbitHoleService.Services
         /// <summary>
         /// Deletes a person.
         /// </summary>
-        /// <param name="id">The id.</param>=
+        /// <param name="id">The id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the delete operation.</returns>
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
             if (id == Guid.Empty)
             {
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var person = await this.repositoryFactory().GetAsync(id, true);
+            var person = await this.repositoryFactory().GetAsync(id, true, cancellationToken);
             if (person == null)
             {
                 throw new PersonNotFoundException<TEntity>(id);
@@ -325,13 +331,13 @@ namespace RabbitHoleService.Services
 
             if (person.UserId != null)
             {
-                await this.DeleteAccountAsync(person.UserId, person);
+                await this.DeleteAccountAsync(person.UserId, person, cancellationToken);
             }
             else
             {
                 // This is for guest customers who have no associated user account.
                 person.IsDeleted = true;
-                await this.unitOfWork.SaveChangesAsync();
+                await this.unitOfWork.SaveChangesAsync(cancellationToken);
             }
         }
 
@@ -340,11 +346,12 @@ namespace RabbitHoleService.Services
         /// </summary>
         /// <param name="userId">The user id.</param>
         /// <param name="person">The person associated with the user account.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the delete operation.</returns>
-        public async Task DeleteAccountAsync(string userId, IPerson? person = null)
+        public async Task DeleteAccountAsync(string userId, IPerson? person = null, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(userId);
-            await using (var transaction = await this.unitOfWork.BeginTransactionAsync())
+            await using (var transaction = await this.unitOfWork.BeginTransactionAsync(cancellationToken))
             {
                 try
                 {
@@ -357,7 +364,7 @@ namespace RabbitHoleService.Services
                     user.IsDeleted = true;
                     user.UserName = $"deleted_{user.Id}"; // To avoid future registration conflicts with the same email.
                     await this.userManager.UpdateAsync(user);
-                    person ??= await this.repositoryFactory().GetByUserIdAsync(userId, true);
+                    person ??= await this.repositoryFactory().GetByUserIdAsync(userId, true, cancellationToken);
                     if (person == null)
                     {
                         throw new PersonNotFoundException<TEntity>(userId);
@@ -365,13 +372,13 @@ namespace RabbitHoleService.Services
                     
                     person.IsDeleted = true;
 
-                    this.unitOfWork.RefreshTokens.DeleteTokensByUserId(userId);
-                    await this.unitOfWork.SaveChangesAsync();
-                    await transaction.CommitAsync();
+                    await this.unitOfWork.RefreshTokens.RevokeTokensByUserId(userId, cancellationToken);
+                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
                 }
                 catch
                 {
-                    await transaction.RollbackAsync();
+                    await transaction.RollbackAsync(cancellationToken);
                     throw;
                 }
             }
@@ -381,12 +388,13 @@ namespace RabbitHoleService.Services
         /// Finds persons that match a certain criteria.
         /// </summary>
         /// <param name="request">The search request.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The persons.</returns>
-        public async Task<IEnumerable<TDto>> FindPersonsAsync(PersonSearchRequestDto request)
+        public async Task<IEnumerable<TDto>> FindPersonsAsync(PersonSearchRequestDto request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            var persons = await this.repositoryFactory().FindAsync(request.Name, request.PhoneNumber, request.Email);
+            var persons = await this.repositoryFactory().FindAsync(request.Name, request.PhoneNumber, request.Email, cancellationToken);
             return persons.Select(this.toDto).ToList();
         }
     }

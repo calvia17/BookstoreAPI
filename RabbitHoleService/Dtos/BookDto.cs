@@ -1,6 +1,7 @@
 ﻿namespace RabbitHoleService.Dtos
 {
     using System.ComponentModel.DataAnnotations;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// The book dto.
@@ -41,5 +42,11 @@
         /// Gets the genres.
         /// </summary>
         public required HashSet<GenreDto> Genres { get; init; } = new();
+
+        /// <summary>
+        /// Gets the last modified date.
+        /// </summary>
+        [JsonIgnore]
+        public DateTimeOffset LastModified { get; set; }
     }
 }

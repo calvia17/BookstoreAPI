@@ -14,6 +14,16 @@ namespace RabbitHoleService.Objects
         public Guid Id { get; init; }
 
         /// <summary>
+        /// Gets or sets the family id. This is used to group refresh tokens that belong to the same user and device.
+        /// </summary>
+        public Guid FamilyId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the JWT id.
+        /// </summary>
+        public Guid JwtId { get; set; }
+
+        /// <summary>
         /// The token.
         /// </summary>
         [Required(ErrorMessage = "The refresh token is required.")]
@@ -38,16 +48,25 @@ namespace RabbitHoleService.Objects
         public ApplicationUser User { get; set; } = null!;
 
         /// <summary>
+        /// Gets or sets a value indicating whether the refresh token has been used.
+        /// </summary>
+        public bool IsUsed { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="RefreshToken" /> class.
         /// </summary>
         /// <param name="token">The token.</param>
         /// <param name="userId">The user id.</param>
         /// <param name="expiryDate">The expiry date.</param>
-        public RefreshToken(string token, string userId, DateTimeOffset expiryDate)
+        /// <param name="familyId">The family id.</param>
+        /// <param name="jwtId">The jwt id.</param>
+        public RefreshToken(string token, string userId, DateTimeOffset expiryDate, Guid familyId, Guid jwtId)
         {
             this.Token = token;
             this.UserId = userId;
             this.ExpiryDate = expiryDate;
+            this.FamilyId = familyId;
+            this.JwtId = jwtId;
         }
     }
 }

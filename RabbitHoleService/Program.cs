@@ -1,16 +1,19 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RabbitHoleService;
 using RabbitHoleService.Data;
+using RabbitHoleService.Middleware;
 using RabbitHoleService.Models;
 using RabbitHoleService.Objects;
 using RabbitHoleService.Repositories;
 using RabbitHoleService.Services;
 using System.Text;
 using System.Text.Json.Serialization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +33,18 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Bookstore API", Version = "v1" });
+    options.SwaggerDoc("v1", new OpenApiInfo 
+    { 
+        Title = "Bookstore API", 
+        Version = "v1",
+        Description = "A RESTful API for managing a bookstore's catalog, orders, customers, and staff.\n\n" +
+              "Highlights:\n" +
+              "- JWT authentication & role-based authorization\n" +
+              "- Refresh token rotation with reuse detection\n" +
+              "- Access token blacklisting via Redis\n" +
+              "- Redis-backed output and hybrid caching\n\n" +
+              "Follow the white rabbit down into a wonderland of books. 🐇"
+    });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -98,12 +112,50 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("StaffOrAdmin", policy => policy.RequireRole(RoleType.Staff.ToString(), RoleType.Admin.ToString()));
 });
 
+// Configure Redis for output caching
+builder.Services.AddStackExchangeRedisOutputCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "output:";
+});
+
+// Configure Redis for L2 caching in HybridCache
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "hybrid:";
+});
+
+builder.Services.AddOutputCache(options =>
+{
+    options.AddBasePolicy(builder => builder.NoCache());
+    options.AddPolicy("DynamicData", builder => builder.Expire(TimeSpan.FromMinutes(5)).Tag("dynamic_data"));
+    options.AddPolicy("StaticData", builder => builder.Expire(TimeSpan.FromDays(30)).Tag("static_data"));
+});
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(15), // L1 + L2 cache expiration
+        LocalCacheExpiration = TimeSpan.FromMinutes(5) // L1 cache expiration
+    };
+});
+
+builder.Services.AddScoped<ITokenCacheService, TokenCacheService>();
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
+
 builder.Services.AddScoped<Seeder>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IBookCacheEvictor, BookCacheEvictor>();
 
 builder.Services.AddScoped<IBookService, BookService>();
-builder.Services.AddScoped<IBookRepository, BookRepository>();
+builder.Services.AddScoped<BookRepository>();
+builder.Services.AddScoped<IBookRepository>(sp => sp.GetRequiredService<BookRepository>());
+builder.Services.AddScoped<ICachedBookRepository>(sp =>
+    new CachedBookRepository(
+        sp.GetRequiredService<BookRepository>(),
+        sp.GetRequiredService<HybridCache>()));
 
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IPersonRepository<Customer>, PersonRepository<Customer>>();
@@ -112,7 +164,11 @@ builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IPersonRepository<Staff>, PersonRepository<Staff>>();
 
 builder.Services.AddScoped<IGenreService, GenreService>();
-builder.Services.AddScoped<IGenreRepository, GenreRepository>();
+builder.Services.AddScoped<GenreRepository>();
+builder.Services.AddScoped<IGenreRepository>(sp =>
+    new CachedGenreRepository(
+        sp.GetRequiredService<GenreRepository>(),
+        sp.GetRequiredService<HybridCache>()));
 
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -149,6 +205,8 @@ using (var scope = app.Services.CreateScope())
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.UseMiddleware<TokenBlacklistMiddleware>();
 app.UseAuthorization();
+app.UseOutputCache();
 app.MapControllers();
 app.Run();

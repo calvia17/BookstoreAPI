@@ -12,23 +12,27 @@ namespace RabbitHoleService.Services
     public partial class OrderService : IOrderService
     {
         private readonly IUnitOfWork unitOfWork;
+        private readonly IBookCacheEvictor cacheEvictor;
 
         /// <summary>
         /// Initializes the order service.
         /// </summary>
         /// <param name="unitOfWork">The unit of work.</param>
-        public OrderService(IUnitOfWork unitOfWork)
+        /// <param name="cacheEvictor">The cache evictor.</param>
+        public OrderService(IUnitOfWork unitOfWork, IBookCacheEvictor cacheEvictor)
         {
             this.unitOfWork = unitOfWork;
+            this.cacheEvictor = cacheEvictor;
         }
 
         /// <summary>
         /// Gets all the orders.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The orders.</returns>
-        public async Task<IEnumerable<OrderDto>> GetAllAsync()
+        public async Task<IEnumerable<OrderDto>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var orders = await this.unitOfWork.Orders.GetAllAsync();
+            var orders = await this.unitOfWork.Orders.GetAllAsync(cancellationToken);
             var dtos = orders.Select(x => OrderModelDtoMapper.ToDto(x)).ToList();
             return dtos;
         }
@@ -39,15 +43,16 @@ namespace RabbitHoleService.Services
         /// <param name="id">The id.</param>
         /// <param name="isStaffOrAdmin">Indicates if the user is staff or admin.</param>
         /// <param name="userId">The user id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The order.</returns>
-        public async Task<OrderDto> GetAsync(Guid id, bool isStaffOrAdmin, string userId)
+        public async Task<OrderDto> GetAsync(Guid id, bool isStaffOrAdmin, string userId, CancellationToken cancellationToken = default)
         {
             if (id == Guid.Empty)
             {
                 throw new ArgumentException("Invalid order ID provided.", nameof(id));
             }
 
-            var order = await this.unitOfWork.Orders.GetAsync(id);
+            var order = await this.unitOfWork.Orders.GetAsync(id, cancellationToken: cancellationToken);
             if (order == null || (!isStaffOrAdmin && order.Customer.UserId != userId))
             {
                 throw new OrderNotFoundException(id);
@@ -60,15 +65,16 @@ namespace RabbitHoleService.Services
         /// Gets the orders for a customer.
         /// </summary>
         /// <param name="customerId">The customer id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The orders.</returns>
-        public async Task<IEnumerable<OrderDto>> GetOrdersForCustomerAsync(Guid customerId)
+        public async Task<IEnumerable<OrderDto>> GetOrdersForCustomerAsync(Guid customerId, CancellationToken cancellationToken = default)
         {
             if (customerId == Guid.Empty)
             {
                 throw new ArgumentException("Invalid ID provided.", nameof(customerId));
             }
 
-            var orders = await this.unitOfWork.Orders.GetByCustomerIdAsync(customerId);
+            var orders = await this.unitOfWork.Orders.GetByCustomerIdAsync(customerId, cancellationToken);
             return orders.Select(x => OrderModelDtoMapper.ToDto(x));
         }
 
@@ -76,16 +82,17 @@ namespace RabbitHoleService.Services
         /// Gets the orders for the authenticated customer.
         /// </summary>
         /// <param name="userId">The user id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The orders.</returns>
-        public async Task<IEnumerable<OrderDto>> GetOrdersAsync(string userId)
+        public async Task<IEnumerable<OrderDto>> GetOrdersAsync(string userId, CancellationToken cancellationToken = default)
         {
-            var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId);
+            var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId, cancellationToken: cancellationToken);
             if (customer == null)
             {
                 throw new PersonNotFoundException<Customer>(userId);
             }
 
-            var orders = await this.unitOfWork.Orders.GetByCustomerIdAsync(customer.Id);
+            var orders = await this.unitOfWork.Orders.GetByCustomerIdAsync(customer.Id, cancellationToken);
             return orders.Select(x => OrderModelDtoMapper.ToDto(x));
         }
 
@@ -94,19 +101,20 @@ namespace RabbitHoleService.Services
         /// </summary>
         /// <param name="newOrderData">The new order data.</param>
         /// <param name="idempotencyKey">The idempotency key.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The order.</returns>
-        public async Task<OrderDto> CreateForCustomerAsync(string idempotencyKey, CreateOrderForCustomerDto newOrderData)
+        public async Task<OrderDto> CreateForCustomerAsync(string idempotencyKey, CreateOrderForCustomerDto newOrderData, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(newOrderData);
             ArgumentException.ThrowIfNullOrEmpty(idempotencyKey);
 
-            var customer = await this.unitOfWork.Customers.GetAsync(newOrderData.CustomerId!.Value);
+            var customer = await this.unitOfWork.Customers.GetAsync(newOrderData.CustomerId!.Value, cancellationToken: cancellationToken);
             if (customer == null)
             {
                 throw new PersonNotFoundException<Customer>(newOrderData.CustomerId!.Value);
             }
 
-            return await CreateAsync(idempotencyKey, newOrderData, customer.Id);
+            return await CreateAsync(idempotencyKey, newOrderData, customer.Id, cancellationToken);
         }
 
         /// <summary>
@@ -115,48 +123,49 @@ namespace RabbitHoleService.Services
         /// <param name="newOrderData">The new order data.</param>
         /// <param name="idempotencyKey">The idempotency key.</param>
         /// <param name="userId">The userId.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The order.</returns>
-        public async Task<OrderDto> CreateAsync(string idempotencyKey, CreateOrderDto newOrderData, string userId)
+        public async Task<OrderDto> CreateAsync(string idempotencyKey, CreateOrderDto newOrderData, string userId, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(newOrderData);
             ArgumentException.ThrowIfNullOrEmpty(idempotencyKey);
 
-            var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId);
+            var customer = await this.unitOfWork.Customers.GetByUserIdAsync(userId, cancellationToken: cancellationToken);
             if (customer == null)
             {
                 throw new PersonNotFoundException<Customer>(userId);
             }
 
-            return await CreateAsync(idempotencyKey, newOrderData, customer.Id);
+            return await CreateAsync(idempotencyKey, newOrderData, customer.Id, cancellationToken);
         }
 
-        private async Task<OrderDto> CreateAsync(string idempotencyKey, CreateOrderDto newOrderData, Guid customerId)
+        private async Task<OrderDto> CreateAsync(string idempotencyKey, CreateOrderDto newOrderData, Guid customerId, CancellationToken cancellationToken)
         {
-            var (existingOrder, idempotencyKeyValue) = await this.ValidateIdempotencyKey(idempotencyKey);
+            var (existingOrder, idempotencyKeyValue) = await this.ValidateIdempotencyKey(idempotencyKey, cancellationToken);
             if (existingOrder != null)
             {
                 return existingOrder;
             }
 
-            var books = await this.ValidateBooks(newOrderData);
+            var books = await this.ValidateBooks(newOrderData, cancellationToken);
             var booksMap = books.ToDictionary(x => x.Id);
             ValidateStock(newOrderData, booksMap);
 
-            return await ProcessTransaction(idempotencyKeyValue, newOrderData, booksMap, customerId);
+            return await ProcessTransaction(idempotencyKeyValue, newOrderData, booksMap, customerId, cancellationToken);
         }
 
-        private async Task<OrderDto> ProcessTransaction(Guid idempotencyKey, CreateOrderDto newOrderData, Dictionary<Guid, Book> booksMap, Guid customerId)
+        private async Task<OrderDto> ProcessTransaction(Guid idempotencyKey, CreateOrderDto newOrderData, Dictionary<Guid, Book> booksMap, Guid customerId, CancellationToken cancellationToken)
         {
-            await using (var transaction = await this.unitOfWork.BeginTransactionAsync())
+            await using (var transaction = await this.unitOfWork.BeginTransactionAsync(cancellationToken))
             {
                 try
                 {
                     // Create the order with Pending status.
-                    var orderToCreate = OrderModelDtoMapper.ToModel(newOrderData, idempotencyKey, customerId);
+                    var orderToCreate = new Order(idempotencyKey, customerId);
                     this.unitOfWork.Orders.Add(orderToCreate);
-                    await this.unitOfWork.SaveChangesAsync();
+                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
 
-                    var createdOrder = await this.unitOfWork.Orders.GetAsync(orderToCreate.Id, true);
+                    var createdOrder = await this.unitOfWork.Orders.GetAsync(orderToCreate.Id, true, cancellationToken);
 
                     if (createdOrder == null)
                     {
@@ -169,20 +178,21 @@ namespace RabbitHoleService.Services
                         if (booksMap.TryGetValue(item.BookId!.Value, out var book))
                         {
                             createdOrder.AddBook(book, item.Quantity!.Value);
-                            book.Stock -= item.Quantity!.Value;
+                            book.UpdateStock(book.Stock - item.Quantity!.Value);
                         }
                     }
 
                     // Update the order status to Processed and save all the changes.
                     createdOrder.UpdateStatus(OrderStatus.Processed, false);
-                    await this.unitOfWork.SaveChangesAsync();
+                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                    await this.cacheEvictor.InvalidateCacheForBooks(booksMap.Values, cancellationToken);
 
-                    await transaction.CommitAsync();
+                    await transaction.CommitAsync(cancellationToken);
                     return OrderModelDtoMapper.ToDto(createdOrder);
                 }
                 catch
                 {
-                    await transaction.RollbackAsync();
+                    await transaction.RollbackAsync(cancellationToken);
                     throw;
                 }
             }
@@ -209,7 +219,7 @@ namespace RabbitHoleService.Services
             }
         }
 
-        private async Task<IEnumerable<Book>> ValidateBooks(CreateOrderDto newOrderData)
+        private async Task<IEnumerable<Book>> ValidateBooks(CreateOrderDto newOrderData, CancellationToken cancellationToken)
         {
             // Check for duplicate books in the order
             var bookIds = new HashSet<Guid>();
@@ -224,13 +234,13 @@ namespace RabbitHoleService.Services
 
             if (duplicateBookIds.Count > 0)
             {
-                var duplicateBooks = await this.unitOfWork.Books.GetAsync(duplicateBookIds);
+                var duplicateBooks = await this.unitOfWork.Books.GetAsync(duplicateBookIds, cancellationToken: cancellationToken);
                 var duplicateItems = duplicateBooks.Select(book => new DuplicateItem(book.Id, book.Isbn, book.Name));
                 throw new DuplicateItemException(duplicateItems);
             }
 
             // Check if all the books exist
-            var books = await this.unitOfWork.Books.GetAsync(bookIds, true);
+            var books = await this.unitOfWork.Books.GetAsync(bookIds, true, cancellationToken);
             var notFoundBookIds = bookIds.Except(books.Select(x => x.Id)).ToList();
             if (notFoundBookIds.Count > 0)
             {
@@ -240,7 +250,7 @@ namespace RabbitHoleService.Services
             return books;
         }
 
-        private async Task<(OrderDto? ExistingOrder, Guid IdempotencyKey)> ValidateIdempotencyKey(string idempotencyKey)
+        private async Task<(OrderDto? ExistingOrder, Guid IdempotencyKey)> ValidateIdempotencyKey(string idempotencyKey, CancellationToken cancellationToken)
         {
             if (idempotencyKey.Length > 50 
                 || !Guid.TryParse(idempotencyKey, out var idempotencyKeyValue) ||
@@ -249,7 +259,7 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid idempotency key provided.", nameof(idempotencyKey));
             }
 
-            var duplicateOrder = await this.unitOfWork.Orders.GetByIdempotencyKeyAsync(idempotencyKeyValue);
+            var duplicateOrder = await this.unitOfWork.Orders.GetByIdempotencyKeyAsync(idempotencyKeyValue, cancellationToken);
             if (duplicateOrder != null)
             {
                 if (duplicateOrder.CreatedAt <= DateTime.UtcNow.AddMinutes(-5))
@@ -275,8 +285,9 @@ namespace RabbitHoleService.Services
         /// <param name="id">The order id.</param>
         /// <param name="updateData">The data to update.</param>
         /// <param name="isAdmin">Indicates if the user is an admin.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateStatusAsync(Guid id, UpdateOrderStatusDto updateData, bool isAdmin)
+        public async Task UpdateStatusAsync(Guid id, UpdateOrderStatusDto updateData, bool isAdmin, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(updateData);
 
@@ -285,12 +296,13 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var order = await this.unitOfWork.Orders.GetAsync(id, true);
+            var order = await this.unitOfWork.Orders.GetAsync(id, true, cancellationToken);
             if (order == null)
             {
                 throw new OrderNotFoundException(id);
             }
 
+            var booksToUpdateMap = new Dictionary<Guid, Book>();
             if (!order.UpdateStatus(updateData.Status!.Value, !isAdmin))
             {
                 throw new InvalidOrderStatusChangeException(order.Id, order.Status, updateData.Status!.Value);
@@ -301,19 +313,23 @@ namespace RabbitHoleService.Services
                 var bookIdsToUpdate = order.BookOrders.Select(x => x.BookId).ToHashSet();
                 if (bookIdsToUpdate.Count > 0)
                 {
-                    var booksToUpdate = await this.unitOfWork.Books.GetAsync(bookIdsToUpdate, true);
-                    var booksToUpdateMap = booksToUpdate.ToDictionary(x => x.Id);
+                    var booksToUpdate = await this.unitOfWork.Books.GetAsync(bookIdsToUpdate, true, cancellationToken);
+                    booksToUpdateMap = booksToUpdate.ToDictionary(x => x.Id);
                     foreach (var item in order.BookOrders)
                     {
                         if (booksToUpdateMap.TryGetValue(item.BookId, out var book))
                         {
-                            book.Stock += item.Quantity;
+                            book.UpdateStock(book.Stock + item.Quantity);
                         }
                     }
                 }
             }
 
-            await this.unitOfWork.SaveChangesAsync();
+            await this.unitOfWork.SaveChangesAsync(cancellationToken);
+            if (order.Status == OrderStatus.Cancelled && booksToUpdateMap.Count > 0)
+            {
+                await this.cacheEvictor.InvalidateCacheForBooks(booksToUpdateMap.Values, cancellationToken);
+            }
         }
     }
 }

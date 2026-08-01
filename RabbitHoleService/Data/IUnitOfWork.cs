@@ -10,6 +10,11 @@ namespace RabbitHoleService.Data
     public interface IUnitOfWork
     {
         /// <summary>
+        /// The cached books.
+        /// </summary>
+        public ICachedBookRepository CachedBooks { get; }
+
+        /// <summary>
         /// The books.
         /// </summary>
         public IBookRepository Books { get; }
@@ -43,12 +48,14 @@ namespace RabbitHoleService.Data
         /// Begins the transaction.
         /// </summary>
         /// <returns>A task representing the transaction start.</returns>
-        Task<IDbContextTransaction> BeginTransactionAsync();
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Saves the changes.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task representing the save operation.</returns>
-        Task SaveChangesAsync();
+        Task SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

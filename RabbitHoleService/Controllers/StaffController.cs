@@ -29,12 +29,13 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Gets all the staff.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The staff.</returns>
         [Authorize(Policy = "AdminOnly")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<StaffDto>>> GetAllStaff()
+        public async Task<ActionResult<IEnumerable<StaffDto>>> GetAllStaff(CancellationToken cancellationToken)
         {
-            var staff = await this.staffService.GetAllAsync();
+            var staff = await this.staffService.GetAllAsync(cancellationToken);
             return Ok(staff);
         }
 
@@ -42,17 +43,18 @@ namespace RabbitHoleService.Controllers
         /// Gets a staff member by id.
         /// </summary>
         /// <param name="id">The staff id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The staff member.</returns>
         [Authorize(Policy = "AdminOnly")]
         [HttpGet("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<StaffDto>> GetStaff([FromRoute] Guid id)
+        public async Task<ActionResult<StaffDto>> GetStaff([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                var staff = await this.staffService.GetAsync(id);
+                var staff = await this.staffService.GetAsync(id, cancellationToken);
                 return Ok(staff);
             }
             catch (ArgumentException ex)
@@ -74,13 +76,14 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Gets the authenticated staff member.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The staff member.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet("me")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<StaffDto>> GetMe()
+        public async Task<ActionResult<StaffDto>> GetMe(CancellationToken cancellationToken)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null)
@@ -90,7 +93,7 @@ namespace RabbitHoleService.Controllers
 
             try
             {
-                var staff = await this.staffService.GetByUserIdAsync(userId);
+                var staff = await this.staffService.GetByUserIdAsync(userId, cancellationToken);
                 return Ok(staff);
             }
             catch (ArgumentException ex)
@@ -113,16 +116,17 @@ namespace RabbitHoleService.Controllers
         /// Finds staff that match a certain criteria.
         /// </summary>
         /// <param name="request">The search request.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The staff members.</returns>
         [Authorize(Policy = "AdminOnly")]
         [HttpGet("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<StaffDto>>> FindStaff([FromQuery] PersonSearchRequestDto request)
+        public async Task<ActionResult<IEnumerable<StaffDto>>> FindStaff([FromQuery] PersonSearchRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var staff = await this.staffService.FindPersonsAsync(request);
+                var staff = await this.staffService.FindPersonsAsync(request, cancellationToken);
                 return Ok(staff);
             }
             catch (ArgumentException ex)
@@ -135,17 +139,18 @@ namespace RabbitHoleService.Controllers
         /// Adds a staff member.
         /// </summary>
         /// <param name="registerData">The registration data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added staff member.</returns>
         [Authorize(Policy = "AdminOnly")]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<ActionResult<StaffDto>> RegisterStaff([FromBody] RegisterStaffDto registerData)
+        public async Task<ActionResult<StaffDto>> RegisterStaff([FromBody] RegisterStaffDto registerData, CancellationToken cancellationToken)
         {
             try
             {
-                var createdStaff = await this.staffService.RegisterAsync(registerData, RoleType.Staff);
+                var createdStaff = await this.staffService.RegisterAsync(registerData, RoleType.Staff, cancellationToken);
                 return CreatedAtAction(nameof(this.GetStaff), new { id = createdStaff.Id }, createdStaff);
             }
             catch (ArgumentException ex)
@@ -168,17 +173,18 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="id">The staff id.</param>
         /// <param name="updateData">The data to update.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
         [Authorize(Policy = "AdminOnly")]
         [HttpPatch("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateStaff([FromRoute] Guid id, [FromBody] UpdateContactInfoDto updateData)
+        public async Task<IActionResult> UpdateStaff([FromRoute] Guid id, [FromBody] UpdateContactInfoDto updateData, CancellationToken cancellationToken)
         {
             try
             {
-                await this.staffService.UpdateAsync(id, updateData);
+                await this.staffService.UpdateAsync(id, updateData, cancellationToken);
                 return NoContent();
             }
             catch (ArgumentException ex)
@@ -211,17 +217,18 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="id">The staff id.</param>
         /// <param name="updateData">The data to update.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
         [Authorize(Policy = "AdminOnly")]
         [HttpPatch("{id:guid}/salary")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateSalary([FromRoute] Guid id, [FromBody] UpdateSalaryDto updateData)
+        public async Task<IActionResult> UpdateSalary([FromRoute] Guid id, [FromBody] UpdateSalaryDto updateData, CancellationToken cancellationToken)
         {
             try
             {
-                await this.staffService.UpdateSalaryAsync(id, updateData);
+                await this.staffService.UpdateSalaryAsync(id, updateData, cancellationToken);
                 return NoContent();
             }
             catch (ArgumentException ex)
@@ -281,17 +288,18 @@ namespace RabbitHoleService.Controllers
         /// Deletes a staff member.
         /// </summary>
         /// <param name="id">The staff id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
         [Authorize(Policy = "AdminOnly")]
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> DeleteStaff([FromRoute] Guid id)
+        public async Task<IActionResult> DeleteStaff([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                await this.staffService.DeleteAsync(id);
+                await this.staffService.DeleteAsync(id, cancellationToken);
                 return NoContent();
             }
             catch (ArgumentException ex)

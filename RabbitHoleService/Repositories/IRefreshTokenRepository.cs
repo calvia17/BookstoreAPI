@@ -12,8 +12,10 @@ namespace RabbitHoleService.Repositories
         /// </summary>
         /// <param name="token">The token.</param>
         /// <param name="includeUser">A value indicating whether the user should be included,</param>
+        /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The refresh token.</returns>
-        Task<RefreshToken?> GetByTokenAsync(string token, bool includeUser = false);
+        Task<RefreshToken?> GetByTokenAsync(string token, bool includeUser = false, bool trackChanges = false, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Creates a new refresh token.
@@ -22,15 +24,33 @@ namespace RabbitHoleService.Repositories
         void Add(RefreshToken refreshToken);
 
         /// <summary>
-        /// Deletes a refresh token.
+        /// Revokes a refresh token.
         /// </summary>
         /// <param name="refreshToken">The refresh token.</param>
-        void Delete(RefreshToken refreshToken);
+        void RevokeToken(RefreshToken refreshToken);
 
         /// <summary>
-        /// Deletes the refresh tokens for a user.
+        /// Revokes the refresh tokens for a user.
         /// </summary>
         /// <param name="userId">The user id.</param>
-        void DeleteTokensByUserId(string userId);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param>The revoked refresh tokens.</param>
+        Task<IEnumerable<RefreshToken>> RevokeTokensByUserId(string userId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Revokes the refresh tokens for a family.
+        /// </summary>
+        /// <param name="familyId">The family id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The revoked refresh tokens.</returns>
+        Task<IEnumerable<RefreshToken>> RevokeTokensByFamilyId(Guid familyId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes the expired refresh tokens.
+        /// </summary>
+        /// <param name="cutoff">The cutoff.</param>
+        /// <param name="cancellationToken">The cancellationToken.</param>
+        /// <returns>A task representing the delete operation.</returns>
+        Task DeleteExpiredTokensAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default);
     }
 }

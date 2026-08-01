@@ -29,12 +29,13 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Gets all the customers.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The customers.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAllCustomers()
+        public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAllCustomers(CancellationToken cancellationToken)
         {
-            var customers = await this.customerService.GetAllAsync();
+            var customers = await this.customerService.GetAllAsync(cancellationToken);
             return Ok(customers);
         }
 
@@ -42,17 +43,18 @@ namespace RabbitHoleService.Controllers
         /// Gets a customer by id.
         /// </summary>
         /// <param name="id">The customer id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The customer.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<CustomerDto>> GetCustomer([FromRoute] Guid id)
+        public async Task<ActionResult<CustomerDto>> GetCustomer([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                var customer = await this.customerService.GetAsync(id);
+                var customer = await this.customerService.GetAsync(id, cancellationToken);
                 return Ok(customer);
             }
             catch (ArgumentException ex)
@@ -74,13 +76,14 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Gets the authenticated customer.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The customer.</returns>
         [Authorize]
         [HttpGet("me")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<CustomerDto>> GetMe()
+        public async Task<ActionResult<CustomerDto>> GetMe(CancellationToken cancellationToken)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null)
@@ -90,7 +93,7 @@ namespace RabbitHoleService.Controllers
 
             try
             {
-                var customer = await this.customerService.GetByUserIdAsync(userId);
+                var customer = await this.customerService.GetByUserIdAsync(userId, cancellationToken);
                 return Ok(customer);
             }
             catch (ArgumentException ex)
@@ -112,17 +115,18 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Finds customers that match a certain criteria.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The search request.</param>
         /// <returns>The customers.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<CustomerDto>>> FindCustomers([FromQuery] PersonSearchRequestDto request)
+        public async Task<ActionResult<IEnumerable<CustomerDto>>> FindCustomers([FromQuery] PersonSearchRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var customers = await this.customerService.FindPersonsAsync(request);
+                var customers = await this.customerService.FindPersonsAsync(request, cancellationToken);
                 return Ok(customers);
             }
             catch (ArgumentException ex)
@@ -135,17 +139,18 @@ namespace RabbitHoleService.Controllers
         /// Adds a customer with account registration.
         /// </summary>
         /// <param name="registerData">The registration data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added customer.</returns>
         [AllowAnonymous]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<ActionResult<CustomerDto>> RegisterCustomer([FromBody] RegisterUserDto registerData)
+        public async Task<ActionResult<CustomerDto>> RegisterCustomer([FromBody] RegisterUserDto registerData, CancellationToken cancellationToken)
         {
             try
             {
-                var createdCustomer = await this.customerService.RegisterAsync(registerData, RoleType.Customer);
+                var createdCustomer = await this.customerService.RegisterAsync(registerData, RoleType.Customer, cancellationToken);
                 return CreatedAtAction(nameof(this.GetCustomer), new { id = createdCustomer.Id }, createdCustomer);
             }
             catch (ArgumentException ex)
@@ -167,17 +172,18 @@ namespace RabbitHoleService.Controllers
         /// Adds a guest customer (guest checkout and in-store customers).
         /// </summary>
         /// <param name="newCustomerData">The new customer data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added customer.</returns>
         [AllowAnonymous]
         [HttpPost("guest")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<ActionResult<CustomerDto>> AddGuestCustomer([FromBody] ContactInfoDto newCustomerData)
+        public async Task<ActionResult<CustomerDto>> AddGuestCustomer([FromBody] ContactInfoDto newCustomerData, CancellationToken cancellationToken)
         {
             try
             {
-                var createdCustomer = await this.customerService.CreateAsync(newCustomerData);
+                var createdCustomer = await this.customerService.CreateAsync(newCustomerData, cancellationToken);
                 return CreatedAtAction(nameof(this.GetCustomer), new { id = createdCustomer.Id }, createdCustomer);
             }
             catch (ArgumentNullException ex)
@@ -208,6 +214,7 @@ namespace RabbitHoleService.Controllers
         /// Updates a customer.
         /// </summary>
         /// <param name="id">The customer id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="updateData">The data to update.</param>
         /// <returns>No content.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
@@ -215,11 +222,11 @@ namespace RabbitHoleService.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateCustomer([FromRoute] Guid id, [FromBody] UpdateContactInfoDto updateData)
+        public async Task<IActionResult> UpdateCustomer([FromRoute] Guid id, [FromBody] UpdateContactInfoDto updateData, CancellationToken cancellationToken)
         {
             try
             {
-                await this.customerService.UpdateAsync(id, updateData);
+                await this.customerService.UpdateAsync(id, updateData, cancellationToken);
                 return NoContent();
             }
             catch (ArgumentException ex)
@@ -250,12 +257,13 @@ namespace RabbitHoleService.Controllers
         /// Updates the account details.
         /// </summary>
         /// <param name="updateData">The update data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the update operation.</returns>
         [Authorize]
         [HttpPatch("me")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UpdateAccount([FromBody] UpdateContactInfoDto updateData)
+        public async Task<IActionResult> UpdateAccount([FromBody] UpdateContactInfoDto updateData, CancellationToken cancellationToken)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null || !Enum.TryParse<RoleType>(User.FindFirstValue(ClaimTypes.Role), true, out var role))
@@ -265,7 +273,7 @@ namespace RabbitHoleService.Controllers
 
             try
             {
-                await this.customerService.UpdateAccountAsync(userId, updateData);
+                await this.customerService.UpdateAccountAsync(userId, updateData, cancellationToken);
                 return NoContent();
             }
             catch (ArgumentException ex)
@@ -333,17 +341,18 @@ namespace RabbitHoleService.Controllers
         /// Deletes a customer.
         /// </summary>
         /// <param name="id">The customer id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> DeleteCustomer([FromRoute] Guid id)
+        public async Task<IActionResult> DeleteCustomer([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                await this.customerService.DeleteAsync(id);
+                await this.customerService.DeleteAsync(id, cancellationToken);
                 return NoContent();
             }
             catch (ArgumentException ex)
@@ -366,18 +375,19 @@ namespace RabbitHoleService.Controllers
         /// Deletes a user account.
         /// </summary>
         /// <param name="refreshToken">The refresh token.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the logout operation.</returns>
         [Authorize]
         [HttpDelete("me")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> DeleteAccount()
+        public async Task<IActionResult> DeleteAccount(CancellationToken cancellationToken)
         {
             try
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (userId != null && Enum.TryParse<RoleType>(User.FindFirstValue(ClaimTypes.Role), true, out var role))
                 {
-                    await this.customerService.DeleteAccountAsync(userId);
+                    await this.customerService.DeleteAccountAsync(userId, cancellationToken: cancellationToken);
                 }
 
                 return Ok();

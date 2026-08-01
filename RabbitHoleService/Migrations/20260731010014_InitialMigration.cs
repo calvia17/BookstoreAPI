@@ -64,7 +64,8 @@ namespace RabbitHoleService.Migrations
                     Author = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Cost = table.Column<decimal>(type: "decimal(10,2)", precision: 10, scale: 2, nullable: false),
                     Stock = table.Column<int>(type: "int", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    LastModified = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -216,9 +217,12 @@ namespace RabbitHoleService.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FamilyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    JwtId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Token = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false, collation: "Latin1_General_CS_AS"),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ExpiryDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                    ExpiryDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    IsUsed = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -418,6 +422,11 @@ namespace RabbitHoleService.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "Books_LastModified",
+                table: "Books",
+                column: "LastModified");
+
+            migrationBuilder.CreateIndex(
                 name: "Books_Name",
                 table: "Books",
                 column: "Name");
@@ -463,6 +472,11 @@ namespace RabbitHoleService.Migrations
                 name: "IX_RefreshTokens_UserId",
                 table: "RefreshTokens",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "RefreshTokens_FamilyId",
+                table: "RefreshTokens",
+                column: "FamilyId");
 
             migrationBuilder.CreateIndex(
                 name: "RefreshTokens_Token",

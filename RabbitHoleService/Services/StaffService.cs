@@ -4,7 +4,6 @@ using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
 using RabbitHoleService.Objects;
-using RabbitHoleService.Repositories;
 
 namespace RabbitHoleService.Services
 {
@@ -36,8 +35,9 @@ namespace RabbitHoleService.Services
         /// </summary>
         /// <param name="id">The id.</param>
         /// <param name="updateData">The update data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateSalaryAsync(Guid id, UpdateSalaryDto updateData)
+        public async Task UpdateSalaryAsync(Guid id, UpdateSalaryDto updateData, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(updateData);
 
@@ -46,14 +46,14 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var staff = await this.unitOfWork.Staff.GetAsync(id, true);
+            var staff = await this.unitOfWork.Staff.GetAsync(id, true, cancellationToken);
             if (staff == null)
             {
                 throw new PersonNotFoundException<Staff>(id);
             }
 
             staff.Salary = updateData.Salary!.Value;
-            await this.unitOfWork.SaveChangesAsync();
+            await this.unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
 }

@@ -13,6 +13,11 @@ namespace RabbitHoleService.Data
         private readonly BookStoreContext context;
         
         /// <summary>
+        /// The cached books.
+        /// </summary>
+        public ICachedBookRepository CachedBooks { get; }
+
+        /// <summary>
         /// The books.
         /// </summary>
         public IBookRepository Books { get; }
@@ -46,15 +51,17 @@ namespace RabbitHoleService.Data
         /// Initializes a new instance of the <see cref="UnitOfWork" /> class.
         /// </summary>
         /// <param name="context">The context.</param>
+        /// <param name="cachedBooks">The cached book repository.</param>
         /// <param name="books">The book repository.</param>
         /// <param name="genres">The genre repository.</param>
         /// <param name="customers">The customer repository.</param>
         /// <param name="staff">The staff.</param>
         /// <param name="orders">The order repository.</param>
         /// <param name="refreshTokens">The refresh token repository.</param>
-        public UnitOfWork(BookStoreContext context, IBookRepository books, IGenreRepository genres, IPersonRepository<Customer> customers, IPersonRepository<Staff> staff, IOrderRepository orders, IRefreshTokenRepository refreshTokens)
+        public UnitOfWork(BookStoreContext context, ICachedBookRepository cachedBooks, IBookRepository books, IGenreRepository cachedGenres, IGenreRepository genres, IPersonRepository<Customer> customers, IPersonRepository<Staff> staff, IOrderRepository orders, IRefreshTokenRepository refreshTokens)
         {
             this.context = context;
+            this.CachedBooks = cachedBooks;
             this.Books = books;
             this.Genres = genres;
             this.Customers = customers;
@@ -66,19 +73,21 @@ namespace RabbitHoleService.Data
         /// <summary>
         /// Begins the transaction.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task representing the transaction start.</returns>
-        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
-            return await this.context.Database.BeginTransactionAsync();
+            return await this.context.Database.BeginTransactionAsync(cancellationToken);
         }
 
         /// <summary>
         /// Saves the changes.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task representing the save operation.</returns>
-        public async Task SaveChangesAsync()
+        public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            await this.context.SaveChangesAsync();
+            await this.context.SaveChangesAsync(cancellationToken);
         }
     }
 }

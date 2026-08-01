@@ -1,9 +1,6 @@
 ﻿using RabbitHoleService.Data;
 using RabbitHoleService.Dtos;
-using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
-using RabbitHoleService.Objects;
-using RabbitHoleService.Repositories;
 
 namespace RabbitHoleService.Services
 {
@@ -26,12 +23,17 @@ namespace RabbitHoleService.Services
         /// <summary>
         /// Gets all the genres.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The genres.</returns>
-        public async Task<IEnumerable<GenreDto>> GetAllAsync()
+        public async Task<IEnumerable<GenreDto>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var genres = await this.unitOfWork.Genres.GetAllAsync();
+            var genres = await this.unitOfWork.Genres.GetAllAsync(cancellationToken);
             var dtos = genres.Select(x => GenreModelDtoMapper.ToDto(x)).ToList();
             return dtos;
         }
     }
 }
+
+// If a user closes the session, the cancellation token is used to cancel the lookup.
+// If it is checking the cache, the final argument passed into getorcreateasync is used.
+// If it is checking the database, the cancellation token is passed into the repository method to cancel the lookup.

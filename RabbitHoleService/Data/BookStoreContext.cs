@@ -63,6 +63,8 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<Book>().Property(b => b.Cost).HasPrecision(10, 2).IsRequired();
             modelBuilder.Entity<Book>().Property(b => b.Stock).IsRequired();
             modelBuilder.Entity<Book>().Property(b => b.IsDeleted).IsRequired();
+            modelBuilder.Entity<Book>().Property(b => b.LastModified).IsRequired();
+            modelBuilder.Entity<Book>().HasIndex(b => b.LastModified).HasDatabaseName("Books_LastModified");
 
             modelBuilder.Entity<Customer>().HasKey(c => c.Id);
             modelBuilder.Entity<Customer>().HasOne(c => c.User).WithOne().HasForeignKey<Customer>(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -110,11 +112,15 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<BookOrder>().HasOne(bo => bo.Order).WithMany(o => o.BookOrders).HasForeignKey(bo => bo.OrderId);
 
             modelBuilder.Entity<RefreshToken>().HasKey(rt => rt.Id);
+            modelBuilder.Entity<RefreshToken>().Property(rt => rt.FamilyId).IsRequired();
+            modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.FamilyId).HasDatabaseName("RefreshTokens_FamilyId");
+            modelBuilder.Entity<RefreshToken>().Property(rt => rt.JwtId).IsRequired();
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.Token).HasMaxLength(64).IsRequired().UseCollation("Latin1_General_CS_AS");
             modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.Token).IsUnique().HasDatabaseName("RefreshTokens_Token");
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.ExpiryDate).IsRequired();
             modelBuilder.Entity<RefreshToken>().HasOne(rt => rt.User).WithMany().HasForeignKey(rt => rt.UserId).IsRequired();
             modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.UserId);
+            modelBuilder.Entity<RefreshToken>().Property(rt => rt.IsUsed).IsRequired();
 
             // Seed the genre data from enum GenreType
             var genreSeeds = Enum.GetValues(typeof(GenreType))

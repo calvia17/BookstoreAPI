@@ -2,7 +2,6 @@
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
-using RabbitHoleService.Objects;
 
 namespace RabbitHoleService.Services
 {
@@ -12,23 +11,27 @@ namespace RabbitHoleService.Services
     public class BookService : IBookService
     {
         private readonly IUnitOfWork unitOfWork;
+        private readonly IBookCacheEvictor cacheEvictor;
 
         /// <summary>
         /// Initializes the book service.
         /// </summary>
         /// <param name="unitOfWork">The unit of work.</param>
-        public BookService(IUnitOfWork unitOfWork)
+        /// <param name="cacheEvictor">The cache evictor.</param>
+        public BookService(IUnitOfWork unitOfWork, IBookCacheEvictor cacheEvictor)
         {
             this.unitOfWork = unitOfWork;
+            this.cacheEvictor = cacheEvictor;
         }
 
         /// <summary>
         /// Gets all the books.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The books.</returns>
-        public async Task<IEnumerable<BookDto>> GetAllAsync()
+        public async Task<IEnumerable<BookDto>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var books =  await this.unitOfWork.Books.GetAllAsync();
+            var books =  await this.unitOfWork.CachedBooks.GetAllAsync(cancellationToken);
             var dtos = books.Select(x => BookModelDtoMapper.ToDto(x)).ToList();
             return dtos;
         }
@@ -37,15 +40,16 @@ namespace RabbitHoleService.Services
         /// Gets the book.
         /// </summary>
         /// <param name="id">The id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The book.</returns>
-        public async Task<BookDto> GetAsync(Guid id)
+        public async Task<BookDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
         {
             if (id == Guid.Empty)
             {
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var book = await this.unitOfWork.Books.GetAsync(id);
+            var book = await this.unitOfWork.CachedBooks.GetAsync(id, cancellationToken: cancellationToken);
             if (book == null)
             {
                 throw new BookNotFoundException(id);
@@ -55,40 +59,41 @@ namespace RabbitHoleService.Services
         }
 
         /// <summary>
-        /// Gets the books.
+        /// Gets the maximum last modified date of all books.
         /// </summary>
-        /// <param name="ids">The ids.</param>
-        /// <returns>The books.</returns>
-        public async Task<IEnumerable<BookDto>> GetAsync(HashSet<Guid> ids)
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The maximum last modified date.</returns>
+        public async Task<DateTimeOffset> GetMaxLastModifiedAsync(CancellationToken cancellationToken = default)
         {
-            if (ids.Any(id => id == Guid.Empty))
-            {
-                throw new ArgumentException("One or more invalid IDs provided.", nameof(ids));
-            }
-
-            var books = await this.unitOfWork.Books.GetAsync(ids);
-            return books.Select(BookModelDtoMapper.ToDto).ToList();
+            var maxLastModified = await this.unitOfWork.CachedBooks.GetMaxLastModifiedAsync(cancellationToken);
+            return maxLastModified;
         }
 
         /// <summary>
         /// Creates a new book.
         /// </summary>
         /// <param name="newBookData">The new book data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The book.</returns>
-        public async Task<BookDto> CreateAsync(CreateBookDto newBookData)
+        public async Task<BookDto> CreateAsync(CreateBookDto newBookData, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(newBookData);
 
-            var duplicateBook = await this.unitOfWork.Books.GetByIsbnAsync(newBookData.Isbn);
+            var duplicateBook = await this.unitOfWork.Books.GetByIsbnAsync(newBookData.Isbn, cancellationToken);
             if (duplicateBook != null)
             {
                 throw new BookAlreadyExistsException(new ExistingBook(duplicateBook.Id, duplicateBook.Isbn, duplicateBook.Name, duplicateBook.Author));
             }
 
             var bookToCreate = BookModelDtoMapper.ToModel(newBookData);
-            this.unitOfWork.Books.Add(bookToCreate);
-            await this.unitOfWork.SaveChangesAsync();
-            var createdBook = await this.unitOfWork.Books.GetAsync(bookToCreate.Id);
+            this.unitOfWork.CachedBooks.Add(bookToCreate);
+            await this.unitOfWork.SaveChangesAsync(cancellationToken);
+            await this.cacheEvictor.InvalidateCacheCollections(cancellationToken);
+
+            // No need to cache since it will be cached on next fetch.
+            // Caching here is unnecessary overhead since it may not be fetched for a long time.
+            // It would just be cache pollution and would push out frequently accessed books from cache.
+            var createdBook = await this.unitOfWork.Books.GetAsync(bookToCreate.Id, cancellationToken: cancellationToken);
             return BookModelDtoMapper.ToDto(createdBook!);
         }
 
@@ -96,8 +101,9 @@ namespace RabbitHoleService.Services
         /// Creates multiple books.
         /// </summary>
         /// <param name="newBooksData">The new books data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added books.</returns>
-        public async Task<IEnumerable<BookDto>> CreateMultipleAsync(IEnumerable<CreateBookDto> newBooksData)
+        public async Task<IEnumerable<BookDto>> CreateMultipleAsync(IEnumerable<CreateBookDto> newBooksData, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(newBooksData);
 
@@ -120,7 +126,7 @@ namespace RabbitHoleService.Services
                 throw new DuplicateBookInputException(duplicates);
             }
 
-            var duplicateBooks = await this.unitOfWork.Books.GetByIsbnsAsync(isbns);
+            var duplicateBooks = await this.unitOfWork.Books.GetByIsbnsAsync(isbns, cancellationToken);
             if (duplicateBooks.Any())
             {
                 var conflicts = duplicateBooks.Select(db => new ExistingBook(db.Id, db.Isbn, db.Name, db.Author)).ToList();
@@ -128,10 +134,11 @@ namespace RabbitHoleService.Services
             }
 
             var booksToCreate = newBooksData.Select(BookModelDtoMapper.ToModel).ToList();
-            this.unitOfWork.Books.AddMultiple(booksToCreate);
-            await this.unitOfWork.SaveChangesAsync();
+            this.unitOfWork.CachedBooks.AddMultiple(booksToCreate);
+            await this.unitOfWork.SaveChangesAsync(cancellationToken);
+            await this.cacheEvictor.InvalidateCacheCollections(cancellationToken);
             var createdBookIds = booksToCreate.Select(b => b.Id).ToHashSet();
-            var createdBooks = await this.unitOfWork.Books.GetAsync(createdBookIds);
+            var createdBooks = await this.unitOfWork.Books.GetAsync(createdBookIds, cancellationToken: cancellationToken);
             return createdBooks.Select(BookModelDtoMapper.ToDto).ToList();
         }
 
@@ -140,9 +147,9 @@ namespace RabbitHoleService.Services
         /// </summary>
         /// <param name="id">The id.</param>
         /// <param name="updateData">The update data.</param>
-        /// <param name="isAdmin">A value indicating whether the user is an admin.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateAsync(Guid id, UpdateBookDto updateData, bool isAdmin)
+        public async Task UpdateAsync(Guid id, UpdateBookDto updateData, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(updateData);
 
@@ -151,23 +158,24 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var book = await this.unitOfWork.Books.GetAsync(id, true);
+            var book = await this.unitOfWork.Books.GetAsync(id, true, cancellationToken);
             if (book == null)
             {
                 throw new BookNotFoundException(id);
             }
 
-            UpdateBookProperties(updateData, book, isAdmin);
-            await this.unitOfWork.SaveChangesAsync();
+            book.UpdateBookProperties(updateData.Name, updateData.Author, updateData.Cost, updateData.Stock, updateData.GenreIds);
+            await this.unitOfWork.SaveChangesAsync(cancellationToken);
+            await this.cacheEvictor.InvalidateCacheForBooks([book], cancellationToken);
         }
 
         /// <summary>
         /// Updates multiple books.
         /// </summary>
         /// <param name="updateData">The data to update.</param>
-        /// <param name="isAdmin">A value indicating whether the user is an admin.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the update operation.</returns>
-        public async Task UpdateMultipleAsync(UpdateMultipleBooksDto updateData, bool isAdmin)
+        public async Task UpdateMultipleAsync(UpdateMultipleBooksDto updateData, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(updateData);
 
@@ -190,7 +198,7 @@ namespace RabbitHoleService.Services
                 throw new DuplicateBookInputException(duplicateBookIds);
             }
 
-            var books = await this.unitOfWork.Books.GetAsync(bookIds, true);
+            var books = await this.unitOfWork.Books.GetAsync(bookIds, true, cancellationToken);
             var notFoundBookIds = bookIds.Except(books.Select(b => b.Id)).ToList();
             if (notFoundBookIds.Count > 0)
             {
@@ -202,89 +210,50 @@ namespace RabbitHoleService.Services
             {
                 if (updateDataMap.TryGetValue(book.Id, out var bookUpdateData))
                 {
-                    UpdateBookProperties(bookUpdateData, book, isAdmin);
+                    book.UpdateBookProperties(bookUpdateData.Name, bookUpdateData.Author, bookUpdateData.Cost, bookUpdateData.Stock, bookUpdateData.GenreIds);
                 }
             }
 
-            await this.unitOfWork.SaveChangesAsync();
+            await this.unitOfWork.SaveChangesAsync(cancellationToken);
+            await this.cacheEvictor.InvalidateCacheForBooks(books, cancellationToken);
         }
 
         /// <summary>
         /// Deletes a book.
         /// </summary>
-        /// <param name="id">The id.</param>=
+        /// <param name="id">The id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the delete operation.</returns>
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
             if (id == Guid.Empty)
             {
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var book = await this.unitOfWork.Books.GetAsync(id, true);
+            var book = await this.unitOfWork.Books.GetAsync(id, true, cancellationToken);
             if (book == null)
             {
                 throw new BookNotFoundException(id);
             }
 
-            book.IsDeleted = true;
-            await this.unitOfWork.SaveChangesAsync();
+            book.DeleteBook();
+            await this.unitOfWork.SaveChangesAsync(cancellationToken);
+            await this.cacheEvictor.InvalidateCacheForBooks([book], cancellationToken);
+
         }
 
         /// <summary>
         /// Finds books that match a certain criteria.
         /// </summary>
         /// <param name="request">The search request.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The books.</returns>
-        public async Task<IEnumerable<BookDto>> FindBooksAsync(BookSearchRequestDto request)
+        public async Task<IEnumerable<BookDto>> FindBooksAsync(BookSearchRequestDto request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
-            var books = await this.unitOfWork.Books.FindBooksAsync(request.Isbn, request.Name, request.Author, request.MinimumCost, request.MaximumCost, request.Genres);
+            var books = await this.unitOfWork.CachedBooks.FindBooksAsync(request.Isbn, request.Name, request.Author, request.MinimumCost, request.MaximumCost, request.Genres, cancellationToken);
             return books.Select(BookModelDtoMapper.ToDto).ToList();
-        }
-
-        private static void UpdateBookProperties(UpdateBookDto updateData, Book book, bool isAdmin)
-        {
-            if (!string.IsNullOrEmpty(updateData.Name))
-            {
-                book.Name = updateData.Name;
-            }
-
-            if (!string.IsNullOrEmpty(updateData.Author))
-            {
-                book.Author = updateData.Author;
-            }
-
-            if (updateData.Cost.HasValue)
-            {
-                if (isAdmin)
-                {
-                    book.Cost = updateData.Cost.Value;
-                }
-                else
-                {
-                    throw new UnauthorizedAccessException("Only admins can update the cost of a book.");
-                }
-            }
-
-            if (updateData.Stock.HasValue)
-            {
-                book.Stock = updateData.Stock.Value;
-            }
-
-            if (updateData.GenreIds != null)
-            {
-                BookService.SyncGenres(book, updateData.GenreIds);
-            }
-        }
-
-        private static void SyncGenres(Book book, HashSet<GenreType> newGenreIds)
-        {
-            var genresToRemove = book.BookGenres.Where(bg => !newGenreIds.Contains(bg.GenreId)).ToList();
-            var existingGenreIds = book.BookGenres.Select(bg => bg.GenreId).ToHashSet();
-            var genresToAdd = newGenreIds.Where(g => !existingGenreIds.Contains(g)).Select(g => new BookGenre(book.Id, g)).ToList();
-            genresToRemove.ForEach(bg => book.BookGenres.Remove(bg));
-            genresToAdd.ForEach(bg => book.BookGenres.Add(bg));
         }
     }
 }

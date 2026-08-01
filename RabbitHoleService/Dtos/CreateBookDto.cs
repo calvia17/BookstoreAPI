@@ -32,7 +32,7 @@ namespace RabbitHoleService.Dtos
         public required string Isbn
         {
             get => this.isbn;
-            init => this.isbn = value.Trim();
+            init => this.isbn = value.Trim().ToUpperInvariant();
         }
 
         /// <summary>

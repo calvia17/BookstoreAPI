@@ -29,13 +29,14 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Gets all the orders.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The orders.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetAllOrders()
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetAllOrders(CancellationToken cancellationToken)
         {
-            var orders = await this.orderService.GetAllAsync();
+            var orders = await this.orderService.GetAllAsync(cancellationToken);
             return Ok(orders);
         }
 
@@ -43,13 +44,14 @@ namespace RabbitHoleService.Controllers
         /// Gets an order.
         /// </summary>
         /// <param name="id">The order id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The customer.</returns>
         [Authorize]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<OrderDto>> GetOrder([FromRoute] Guid id)
+        public async Task<ActionResult<OrderDto>> GetOrder([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
@@ -60,7 +62,7 @@ namespace RabbitHoleService.Controllers
                     return Unauthorized();
                 }
 
-                var order = await this.orderService.GetAsync(id, isStaffOrAdmin, userId);
+                var order = await this.orderService.GetAsync(id, isStaffOrAdmin, userId, cancellationToken);
                 return Ok(order);
             }
             catch (ArgumentException ex)
@@ -83,6 +85,7 @@ namespace RabbitHoleService.Controllers
         /// Adds an order for a customer.
         /// </summary>
         /// <param name="newOrderData">The new order data.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added order.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpPost]
@@ -92,11 +95,12 @@ namespace RabbitHoleService.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<ActionResult<OrderDto>> AddOrderForCustomer(
             [FromBody] CreateOrderForCustomerDto newOrderData,
-            [FromHeader(Name = "X-Idempotency-Key")] string idempotencyKey)
+            [FromHeader(Name = "X-Idempotency-Key")] string idempotencyKey,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var createdOrder = await this.orderService.CreateForCustomerAsync(idempotencyKey, newOrderData);
+                var createdOrder = await this.orderService.CreateForCustomerAsync(idempotencyKey, newOrderData, cancellationToken);
                 return CreatedAtAction(nameof(this.GetOrder), new { id = createdOrder.Id }, createdOrder);
             }
             catch (ArgumentNullException ex)
@@ -168,6 +172,8 @@ namespace RabbitHoleService.Controllers
         /// Adds an order for the authenticated customer.
         /// </summary>
         /// <param name="newOrderData">The new order data.</param>
+        /// <param name="idempotencyKey">The idempotency key.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added order.</returns>
         [Authorize]
         [HttpPost("me")]
@@ -177,7 +183,8 @@ namespace RabbitHoleService.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<ActionResult<OrderDto>> AddOrder(
             [FromBody] CreateOrderDto newOrderData,
-            [FromHeader(Name = "X-Idempotency-Key")] string idempotencyKey)
+            [FromHeader(Name = "X-Idempotency-Key")] string idempotencyKey,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -187,7 +194,7 @@ namespace RabbitHoleService.Controllers
                     return Unauthorized();
                 }
 
-                var createdOrder = await this.orderService.CreateAsync(idempotencyKey, newOrderData, userId);
+                var createdOrder = await this.orderService.CreateAsync(idempotencyKey, newOrderData, userId, cancellationToken);
                 return CreatedAtAction(nameof(this.GetOrder), new { id = createdOrder.Id }, createdOrder);
             }
             catch (ArgumentNullException ex)
@@ -260,18 +267,19 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="id">The order id.</param>
         /// <param name="updateData">The data to update.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpPatch("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateOrderStatus([FromRoute] Guid id, [FromBody] UpdateOrderStatusDto updateData)
+        public async Task<IActionResult> UpdateOrderStatus([FromRoute] Guid id, [FromBody] UpdateOrderStatusDto updateData, CancellationToken cancellationToken)
         {
             try
             {
                 var isAdmin = User.IsInRole(RoleType.Admin.ToString());
-                await this.orderService.UpdateStatusAsync(id, updateData, isAdmin);
+                await this.orderService.UpdateStatusAsync(id, updateData, isAdmin, cancellationToken);
                 return NoContent();
             }
             catch (ArgumentException ex)
@@ -306,17 +314,18 @@ namespace RabbitHoleService.Controllers
         /// Gets the orders for a customer.
         /// </summary>
         /// <param name="customerId">The customer id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The orders.</returns>
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet("customer/{customerId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersForCustomer([FromRoute] Guid customerId)
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersForCustomer([FromRoute] Guid customerId, CancellationToken cancellationToken)
         {
             try
             {
-                var orders = await this.orderService.GetOrdersForCustomerAsync(customerId);
+                var orders = await this.orderService.GetOrdersForCustomerAsync(customerId, cancellationToken);
                 return Ok(orders);
             }
             catch (ArgumentException ex)
@@ -338,13 +347,14 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Gets the orders for the authenticated customer.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The orders.</returns>
         [Authorize]
         [HttpGet("me")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders(CancellationToken cancellationToken)
         {
             try
             {
@@ -354,7 +364,7 @@ namespace RabbitHoleService.Controllers
                     return Unauthorized();
                 }
 
-                var orders = await this.orderService.GetOrdersAsync(userId);
+                var orders = await this.orderService.GetOrdersAsync(userId, cancellationToken);
                 return Ok(orders);
             }
             catch (ArgumentException ex)

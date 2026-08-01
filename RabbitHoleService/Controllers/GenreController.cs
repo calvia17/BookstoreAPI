@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Services;
 
@@ -26,13 +27,15 @@ namespace RabbitHoleService.Controllers
         /// <summary>
         /// Gets all the genres.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The genres.</returns>
         [AllowAnonymous]
         [HttpGet]
+        [OutputCache(PolicyName = "StaticData")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<GenreDto>>> GetAllGenres()
+        public async Task<ActionResult<IEnumerable<GenreDto>>> GetAllGenres(CancellationToken cancellationToken)
         {
-            var genres = await this.genreService.GetAllAsync();
+            var genres = await this.genreService.GetAllAsync(cancellationToken);
             return Ok(genres);
         }
     }

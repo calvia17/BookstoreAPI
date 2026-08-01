@@ -11,40 +11,45 @@ namespace RabbitHoleService.Repositories
         /// <summary>
         /// Gets all the persons.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The persons.</returns>
-        Task<IEnumerable<TEntity>> GetAllAsync();
+        Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets the person.
         /// </summary>
         /// <param name="id">The id.</param>
         /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The person.</returns>
-        Task<TEntity?> GetAsync(Guid id, bool trackChanges = false);
+        Task<TEntity?> GetAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets the person by the user id.
         /// </summary>
         /// <param name="userId">The user id.</param>
         /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The person.</returns>
-        Task<TEntity?> GetByUserIdAsync(string userId, bool trackChanges = false);
+        Task<TEntity?> GetByUserIdAsync(string userId, bool trackChanges = false, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets the person by the phone number.
         /// </summary>
         /// <param name="phone">The phone number.</param>
         /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The person.</returns>
-        Task<TEntity?> GetByPhoneAsync(string phone, bool trackChanges = false);
+        Task<TEntity?> GetByPhoneAsync(string phone, bool trackChanges = false, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets the person by the email.
         /// </summary>
         /// <param name="email">The email.</param>
         /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The person.</returns>
-        Task<TEntity?> GetByEmailAsync(string email, bool trackChanges = false);
+        Task<TEntity?> GetByEmailAsync(string email, bool trackChanges = false, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Creates a new person.
@@ -58,8 +63,8 @@ namespace RabbitHoleService.Repositories
         /// <param name="email">The name.</param>
         /// <param name="name">The phone.</param>
         /// <param name="phone">The email.</param>
-        /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The persons.</returns>
-        Task<List<TEntity>> FindAsync(string? name, string? phone, string? email, bool trackChanges = false);
+        Task<List<TEntity>> FindAsync(string? name, string? phone, string? email, CancellationToken cancellationToken = default);
     }
 }

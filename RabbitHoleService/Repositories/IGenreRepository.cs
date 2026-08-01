@@ -12,7 +12,8 @@ namespace RabbitHoleService.Repositories
         /// <summary>
         /// Gets all the genres.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The genres.</returns>
-        Task<IEnumerable<Genre>> GetAllAsync();
+        Task<IEnumerable<Genre>> GetAllAsync(CancellationToken cancellationToken = default);
     }
 }

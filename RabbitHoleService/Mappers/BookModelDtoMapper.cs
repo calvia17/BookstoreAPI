@@ -25,6 +25,7 @@ namespace RabbitHoleService.Mappers
                 Author = book.Author,
                 Cost = book.Cost,
                 Stock = book.Stock,
+                LastModified = book.LastModified,
                 Genres = book.BookGenres.Select(bg => new GenreDto
                 {
                     Id = bg.GenreId,
@@ -47,24 +48,6 @@ namespace RabbitHoleService.Mappers
             {
                 // When creating a new book, we use the navigation property to link the book and genre together since the book's ID doesn't exist yet.
                 book.BookGenres.Add(new BookGenre(book, genreId));
-            }
-
-            return book;
-        }
-
-        /// <summary>
-        /// Converts the dto into a book model.
-        /// </summary>
-        /// <param name="dto">The dto.</param>
-        /// <returns>The model.</returns>
-        public static Book ToModel(BookDto dto)
-        {
-            ArgumentNullException.ThrowIfNull(dto);
-
-            var book = new Book(dto.Id, dto.Name, dto.Isbn, dto.Author, dto.Cost, dto.Stock);
-            foreach (var genre in dto.Genres)
-            {
-                book.BookGenres.Add(new BookGenre(book.Id, genre.Id));
             }
 
             return book;
