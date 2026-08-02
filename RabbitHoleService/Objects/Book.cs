@@ -1,6 +1,7 @@
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Services;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace RabbitHoleService.Objects
 {
@@ -76,6 +77,7 @@ namespace RabbitHoleService.Objects
         /// <param name="author">The author.</param>rd
         /// <param name="cost">The cost.</param>
         /// <param name="stock">The stock.</param>
+        [JsonConstructor]
         public Book(string name, string isbn, string author, decimal cost, int stock)
         {
             this.Name = name;

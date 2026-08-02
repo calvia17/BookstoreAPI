@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace RabbitHoleService.Objects
 {
@@ -30,6 +31,7 @@ namespace RabbitHoleService.Objects
         /// </summary>
         /// <param name="id">The id.</param>
         /// <param name="name">The name.</param>
+        [JsonConstructor]
         public Genre(GenreType id, string name)
         {
             this.Id = id;

@@ -1,10 +1,8 @@
-﻿using Humanizer;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
-using RabbitHoleService.Objects;
 using RabbitHoleService.Services;
 
 namespace RabbitHoleService.Controllers
@@ -63,7 +61,7 @@ namespace RabbitHoleService.Controllers
         /// <returns>The book.</returns>
         [AllowAnonymous]
         [HttpGet("{id}")]
-        [OutputCache(PolicyName = "DynamicData", Tags = ["book:id"])]
+        [OutputCache(PolicyName = "DynamicData")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

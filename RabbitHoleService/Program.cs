@@ -128,9 +128,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
 
 builder.Services.AddOutputCache(options =>
 {
-    options.AddBasePolicy(builder => builder.NoCache());
-    options.AddPolicy("DynamicData", builder => builder.Expire(TimeSpan.FromMinutes(5)).Tag("dynamic_data"));
-    options.AddPolicy("StaticData", builder => builder.Expire(TimeSpan.FromDays(30)).Tag("static_data"));
+    options.AddPolicy("DynamicData", new CatalogCachePolicy(TimeSpan.FromMinutes(5)));
+    options.AddPolicy("StaticData", new CatalogCachePolicy(TimeSpan.FromDays(30)));
 });
 builder.Services.AddHybridCache(options =>
 {

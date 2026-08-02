@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace RabbitHoleService.Objects
 {
@@ -22,6 +23,7 @@ namespace RabbitHoleService.Objects
         /// <summary>
         /// The book.
         /// </summary>
+        [JsonIgnore]
         public Book Book { get; set; } = null!;
 
         /// <summary>
