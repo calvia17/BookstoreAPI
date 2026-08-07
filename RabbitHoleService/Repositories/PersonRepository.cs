@@ -133,7 +133,7 @@ namespace RabbitHoleService.Repositories
             IQueryable<TEntity> persons = this.context.Set<TEntity>().AsNoTracking().Where(c => !c.IsDeleted);
             if (!string.IsNullOrEmpty(name))
             {
-                persons = persons.Where(c => c.Name.StartsWith(name));
+                persons = persons.Where(c => c.Name.Contains(name));
             }
             if (!string.IsNullOrEmpty(phone))
             {

@@ -1,12 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
-using NuGet.Protocol.Core.Types;
-using NuGet.Protocol.Plugins;
-using RabbitHoleService.Dtos;
 using RabbitHoleService.Models;
 using RabbitHoleService.Objects;
-using System.ComponentModel;
-using System.Threading.Tasks;
 
 namespace RabbitHoleService.Repositories
 {
@@ -169,11 +163,11 @@ namespace RabbitHoleService.Repositories
             }
             if (!string.IsNullOrEmpty(name))
             {
-                books = books.Where(b => b.Name.StartsWith(name));
+                books = books.Where(b => b.Name.Contains(name));
             }
             if (!string.IsNullOrEmpty(author))
             {
-                books = books.Where(b => b.Author.StartsWith(author));
+                books = books.Where(b => b.Author.Contains(author));
             }
             if (minimumCost.HasValue)
             {
