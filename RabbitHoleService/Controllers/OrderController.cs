@@ -223,16 +223,9 @@ namespace RabbitHoleService.Controllers
                     Title = "Inventory Conflict",
                     Status = StatusCodes.Status400BadRequest,
                     Detail = ex.Message,
-                    InsufficientStockItems = ex.InsufficientStockItems
-                });
-            }
-            catch (IdempotencyKeyExpiredException ex)
-            {
-                return BadRequest(new
-                {
-                    Title = "Idempotency Key Expired",
-                    Status = StatusCodes.Status400BadRequest,
-                    Detail = ex.Message
+                    BookId = ex.BookId,
+                    Isbn = ex.Isbn,
+                    Name = ex.Name
                 });
             }
             catch (OrderProcessingException ex)
@@ -318,16 +311,9 @@ namespace RabbitHoleService.Controllers
                     Title = "Inventory Conflict",
                     Status = StatusCodes.Status400BadRequest,
                     Detail = ex.Message,
-                    InsufficientStockItems = ex.InsufficientStockItems
-                });
-            }
-            catch (IdempotencyKeyExpiredException ex)
-            {
-                return BadRequest(new
-                {
-                    Title = "Idempotency Key Expired",
-                    Status = StatusCodes.Status400BadRequest,
-                    Detail = ex.Message
+                    BookId = ex.BookId,
+                    Isbn = ex.Isbn,
+                    Name = ex.Name
                 });
             }
             catch (OrderProcessingException ex)

@@ -45,5 +45,15 @@ namespace RabbitHoleService.Repositories
         /// </summary>
         /// <param name="newOrderData">The new order data.</param>
         void Add(Order newOrderData);
+
+        /// <summary>
+        /// Updates the order status.
+        /// </summary>
+        /// <param name="orderId">The order id.</param>
+        /// <param name="newStatus">The new status.</param>
+        /// <param name="allowedPreviousStates">The allowed previous states.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected rows.</returns>
+        Task<int> UpdateStatusAsync(Guid orderId, OrderStatus newStatus, IReadOnlyCollection<OrderStatus> allowedPreviousStates, CancellationToken cancellationToken = default);
     }
 }

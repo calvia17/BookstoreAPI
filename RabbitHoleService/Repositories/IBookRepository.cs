@@ -81,5 +81,14 @@ namespace RabbitHoleService.Repositories
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The books.</returns>
         Task<IEnumerable<Book>> FindBooksAsync(string? isbn, string? name, string? author, decimal? minimumCost, decimal? maximumCost, HashSet<GenreType>? genreIds, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Updates the book stock.
+        /// </summary>
+        /// <param name="bookId">The book id.</param>
+        /// <param name="stockToAdd">The stock to add.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected rows.</returns>
+        Task<int> UpdateStockAsync(Guid bookId, int stockToAdd, CancellationToken cancellationToken = default);
     }
 }

@@ -162,15 +162,8 @@ namespace RabbitHoleService.Objects
         }
 
         /// <summary>
-        /// Updates the stock.
+        /// Deletes the book.
         /// </summary>
-        /// <param name="newStock">The new stock.</param>
-        public void UpdateStock(int newStock)
-        {
-            this.Stock = newStock;
-            this.LastModified = DateTimeOffset.UtcNow;
-        }
-
         public void DeleteBook()
         {
             this.IsDeleted = true;

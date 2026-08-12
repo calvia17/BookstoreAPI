@@ -136,6 +136,16 @@ namespace RabbitHoleService.Repositories
         public void AddMultiple(IEnumerable<Book> newBooksData) => this.innerRepository.AddMultiple(newBooksData);
 
         /// <summary>
+        /// Updates the book stock.
+        /// </summary>
+        /// <param name="bookId">The book id.</param>
+        /// <param name="stockToAdd">The stock to add.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected rows.</returns>
+        public Task<int> UpdateStockAsync(Guid bookId, int stockToAdd, CancellationToken cancellationToken = default) 
+            => this.innerRepository.UpdateStockAsync(bookId, stockToAdd, cancellationToken);
+
+        /// <summary>
         /// Finds books that match a certain criteria.
         /// </summary>
         /// <param name="isbn">The isbn.</param>

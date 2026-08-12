@@ -185,5 +185,21 @@ namespace RabbitHoleService.Repositories
 
             return await books.ToListAsync(cancellationToken);
         }
+
+        /// <summary>
+        /// Updates the book stock.
+        /// </summary>
+        /// <param name="bookId">The book id.</param>
+        /// <param name="stockToAdd">The stock to add.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected rows.</returns>
+        public async Task<int> UpdateStockAsync(Guid bookId, int stockToAdd, CancellationToken cancellationToken = default)
+        {
+            var affectedRows = await this.context.Books
+                .Where(b => b.Id == bookId && b.Stock + stockToAdd >= 0)
+                .ExecuteUpdateAsync(b => b.SetProperty(x => x.Stock, x => x.Stock + stockToAdd)
+                .SetProperty(x => x.LastModified, x => DateTimeOffset.UtcNow), cancellationToken);
+            return affectedRows;
+        }
     }
 }

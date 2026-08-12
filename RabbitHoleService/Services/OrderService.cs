@@ -149,7 +149,6 @@ namespace RabbitHoleService.Services
 
             var books = await this.ValidateBooks(newOrderData, cancellationToken);
             var booksMap = books.ToDictionary(x => x.Id);
-            ValidateStock(newOrderData, booksMap);
 
             return await ProcessTransaction(idempotencyKeyValue, newOrderData, booksMap, customerId, cancellationToken);
         }
@@ -178,12 +177,17 @@ namespace RabbitHoleService.Services
                         if (booksMap.TryGetValue(item.BookId!.Value, out var book))
                         {
                             createdOrder.AddBook(book, item.Quantity!.Value);
-                            book.UpdateStock(book.Stock - item.Quantity!.Value);
+                            var affectedRows = await this.unitOfWork.Books.UpdateStockAsync(book.Id, -item.Quantity!.Value, cancellationToken);
+                            if (affectedRows == 0)
+                            {
+                                throw new InsufficientStockException(book.Id, book.Isbn, book.Name);
+                            }
                         }
                     }
 
                     // Update the order status to Processed and save all the changes.
-                    createdOrder.UpdateStatus(OrderStatus.Processed, false);
+                    var validPreviousStates = this.GetValidPreviousOrderStates(OrderStatus.Processed, false);
+                    await this.unitOfWork.Orders.UpdateStatusAsync(createdOrder.Id, OrderStatus.Processed, validPreviousStates, cancellationToken);
                     await this.unitOfWork.SaveChangesAsync(cancellationToken);
                     await this.cacheEvictor.InvalidateCacheForBooks(booksMap.Values, cancellationToken);
 
@@ -195,27 +199,6 @@ namespace RabbitHoleService.Services
                     await transaction.RollbackAsync(cancellationToken);
                     throw;
                 }
-            }
-        }
-
-        private static void ValidateStock(CreateOrderDto newOrderData, Dictionary<Guid, Book> booksMap)
-        {
-            // Check if there is sufficient stock
-            var insufficientStockItems = new List<InsufficientStockItem>();
-            foreach (var item in newOrderData.OrderItems)
-            {
-                if (booksMap.TryGetValue(item.BookId!.Value, out var book))
-                {
-                    if (book.Stock < item.Quantity!.Value)
-                    {
-                        insufficientStockItems.Add(new InsufficientStockItem(book.Id, book.Isbn, book.Name, book.Stock));
-                    }
-                }
-            }
-
-            if (insufficientStockItems.Count > 0)
-            {
-                throw new InsufficientStockException(insufficientStockItems);
             }
         }
 
@@ -240,7 +223,7 @@ namespace RabbitHoleService.Services
             }
 
             // Check if all the books exist
-            var books = await this.unitOfWork.Books.GetAsync(bookIds, true, cancellationToken);
+            var books = await this.unitOfWork.Books.GetAsync(bookIds, cancellationToken: cancellationToken);
             var notFoundBookIds = bookIds.Except(books.Select(x => x.Id)).ToList();
             if (notFoundBookIds.Count > 0)
             {
@@ -262,11 +245,7 @@ namespace RabbitHoleService.Services
             var duplicateOrder = await this.unitOfWork.Orders.GetByIdempotencyKeyAsync(idempotencyKeyValue, cancellationToken);
             if (duplicateOrder != null)
             {
-                if (duplicateOrder.CreatedAt <= DateTime.UtcNow.AddMinutes(-5))
-                {
-                    throw new IdempotencyKeyExpiredException(duplicateOrder.Id, idempotencyKeyValue);
-                }
-                else if (duplicateOrder.Status == OrderStatus.Pending)
+                if (duplicateOrder.Status == OrderStatus.Pending)
                 {
                     throw new OrderProcessingException(duplicateOrder.Id);
                 }
@@ -296,40 +275,98 @@ namespace RabbitHoleService.Services
                 throw new ArgumentException("Invalid ID provided.", nameof(id));
             }
 
-            var order = await this.unitOfWork.Orders.GetAsync(id, true, cancellationToken);
-            if (order == null)
+            await using (var transaction = await this.unitOfWork.BeginTransactionAsync(cancellationToken))
             {
-                throw new OrderNotFoundException(id);
-            }
-
-            var booksToUpdateMap = new Dictionary<Guid, Book>();
-            if (!order.UpdateStatus(updateData.Status!.Value, !isAdmin))
-            {
-                throw new InvalidOrderStatusChangeException(order.Id, order.Status, updateData.Status!.Value);
-            }
-            else if (order.Status == OrderStatus.Cancelled)
-            {
-                // Update stock for books in the cancelled order
-                var bookIdsToUpdate = order.BookOrders.Select(x => x.BookId).ToHashSet();
-                if (bookIdsToUpdate.Count > 0)
+                try
                 {
-                    var booksToUpdate = await this.unitOfWork.Books.GetAsync(bookIdsToUpdate, true, cancellationToken);
-                    booksToUpdateMap = booksToUpdate.ToDictionary(x => x.Id);
-                    foreach (var item in order.BookOrders)
+                    var booksToUpdateMap = new Dictionary<Guid, Book>();
+                    var validPreviousStates = this.GetValidPreviousOrderStates(updateData.Status!.Value, isAdmin);
+                    var affectedRows = await this.unitOfWork.Orders.UpdateStatusAsync(id, updateData.Status!.Value, validPreviousStates, cancellationToken);
+                    if (affectedRows == 0)
                     {
-                        if (booksToUpdateMap.TryGetValue(item.BookId, out var book))
+                        var order = await this.unitOfWork.Orders.GetAsync(id, cancellationToken: cancellationToken);
+                        if (order == null)
                         {
-                            book.UpdateStock(book.Stock + item.Quantity);
+                            throw new OrderNotFoundException(id);
+                        }
+
+                        if (order.Status == updateData.Status!.Value)
+                        {
+                            await transaction.RollbackAsync(cancellationToken);
+                            return;
+                        }
+
+                        throw new InvalidOrderStatusChangeException(order.Id, order.Status, updateData.Status!.Value);
+                    }
+
+                    if (updateData.Status!.Value == OrderStatus.Cancelled)
+                    {
+                        // Update stock for books in the cancelled order
+                        var order = await this.unitOfWork.Orders.GetAsync(id, cancellationToken: cancellationToken);
+                        var bookIdsToUpdate = order!.BookOrders.Select(x => x.BookId).ToHashSet();
+                        if (bookIdsToUpdate.Count > 0)
+                        {
+                            var booksToUpdate = await this.unitOfWork.Books.GetAsync(bookIdsToUpdate, cancellationToken: cancellationToken);
+                            booksToUpdateMap = booksToUpdate.ToDictionary(x => x.Id);
+                            foreach (var item in order.BookOrders)
+                            {
+                                if (booksToUpdateMap.TryGetValue(item.BookId, out var book))
+                                {
+                                    await this.unitOfWork.Books.UpdateStockAsync(book.Id, item.Quantity, cancellationToken);
+                                }
+                            }
                         }
                     }
+
+                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                    if (updateData.Status!.Value == OrderStatus.Cancelled && booksToUpdateMap.Count > 0)
+                    {
+                        await this.cacheEvictor.InvalidateCacheForBooks(booksToUpdateMap.Values, cancellationToken);
+                    }
+
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
                 }
             }
+        }
 
-            await this.unitOfWork.SaveChangesAsync(cancellationToken);
-            if (order.Status == OrderStatus.Cancelled && booksToUpdateMap.Count > 0)
+        /// <summary>
+        /// Gets the valid previous order states for a given new status.
+        /// </summary>
+        /// <param name="newStatus">The new status</param>
+        /// <param name="validateTransition">A value indicating whether validation should be performed.</param>
+        /// <returns>The valid previous states.</returns>
+        public IReadOnlyCollection<OrderStatus> GetValidPreviousOrderStates(OrderStatus newStatus, bool validateTransition)
+        {
+            var previousStates = Enum.GetValues<OrderStatus>()
+                .Where(status => IsStatusChangeValid(status, newStatus, validateTransition))
+                .ToList();
+            return previousStates;
+        }
+
+        private static bool IsStatusChangeValid(OrderStatus previousStatus, OrderStatus newStatus, bool validateTransition)
+        {
+            if (previousStatus == newStatus)
             {
-                await this.cacheEvictor.InvalidateCacheForBooks(booksToUpdateMap.Values, cancellationToken);
+                return false;
             }
+            
+            if (validateTransition)
+            {
+                return true;
+            }
+
+            return previousStatus switch
+            {
+                OrderStatus.Pending => newStatus == OrderStatus.Processed || newStatus == OrderStatus.Cancelled,
+                OrderStatus.Processed => newStatus == OrderStatus.Shipped,
+                OrderStatus.Shipped => newStatus == OrderStatus.Delivered,
+                _ => false
+            };
         }
     }
 }

@@ -100,5 +100,21 @@ namespace RabbitHoleService.Repositories
             ArgumentNullException.ThrowIfNull(newOrderData);
             this.context.Orders.Add(newOrderData);
         }
+
+        /// <summary>
+        /// Updates the order status.
+        /// </summary>
+        /// <param name="orderId">The order id.</param>
+        /// <param name="newStatus">The new status.</param>
+        /// <param name="allowedPreviousStates">The allowed previous states.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected rows.</returns>
+        public async Task<int> UpdateStatusAsync(Guid orderId, OrderStatus newStatus, IReadOnlyCollection<OrderStatus> allowedPreviousStates, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(orderId);
+            var affectedRows = await this.context.Orders.Where(o => o.Id == orderId && allowedPreviousStates.Contains(o.Status))
+                .ExecuteUpdateAsync(x => x.SetProperty(o => o.Status, newStatus), cancellationToken);
+            return affectedRows;
+        }
     }
 }

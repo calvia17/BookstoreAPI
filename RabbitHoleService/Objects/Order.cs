@@ -76,33 +76,5 @@ namespace RabbitHoleService.Objects
             this.BookOrders.Add(bookOrder);
             this.TotalCost += bookOrder.PriceAtPurchase * bookOrder.Quantity;
         }
-
-        /// <summary>
-        /// Updates the order status.
-        /// </summary>
-        /// <param name="newStatus">The new status</param>
-        /// <param name="validateTransition">A value indciating whether the state transition must be validated.</param>
-        /// <returns>A value indicating whether the status update was successful.</returns>
-        public bool UpdateStatus(OrderStatus newStatus, bool validateTransition = true)
-        {
-            if (this.Status == newStatus || (validateTransition && !this.IsStatusChangeValid(newStatus)))
-            {
-                return false;
-            }
-
-            this.Status = newStatus;
-            return true;
-        }
-
-        private bool IsStatusChangeValid(OrderStatus newStatus)
-        {
-            return this.Status switch
-            {
-                OrderStatus.Pending => newStatus == OrderStatus.Cancelled,
-                OrderStatus.Processed => newStatus == OrderStatus.Shipped,
-                OrderStatus.Shipped => newStatus == OrderStatus.Delivered,
-                _ => false
-            };
-        }
     }
 }
