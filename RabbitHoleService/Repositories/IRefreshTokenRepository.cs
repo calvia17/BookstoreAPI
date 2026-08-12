@@ -27,7 +27,9 @@ namespace RabbitHoleService.Repositories
         /// Revokes a refresh token.
         /// </summary>
         /// <param name="refreshToken">The refresh token.</param>
-        void RevokeToken(RefreshToken refreshToken);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected rows.</returns>
+        Task<int> RevokeTokenAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Revokes the refresh tokens for a user.

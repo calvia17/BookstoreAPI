@@ -60,10 +60,14 @@ namespace RabbitHoleService.Repositories
         /// Revokes a refresh token.
         /// </summary>
         /// <param name="refreshToken">The refresh token.</param>
-        public void RevokeToken(RefreshToken refreshToken)
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected rows.</returns>
+        public async Task<int> RevokeTokenAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(refreshToken);
-            refreshToken.IsUsed = true;
+            var affectedRows = await this.context.RefreshTokens.Where(rt => rt.Id == refreshToken.Id && !rt.IsUsed)
+                .ExecuteUpdateAsync(rt => rt.SetProperty(t => t.IsUsed, true), cancellationToken);
+            return affectedRows;
         }
 
         /// <summary>

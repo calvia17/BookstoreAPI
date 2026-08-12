@@ -104,12 +104,10 @@ namespace RabbitHoleService.Services
         public async Task LogoutAsync(string userId, RefreshTokenDto refreshToken, CancellationToken cancellationToken = default)
         {
             var hashedRefreshToken = HashRefreshToken(refreshToken.RefreshToken);
-            var existingToken = await this.unitOfWork.RefreshTokens.GetByTokenAsync(hashedRefreshToken, false, true, cancellationToken: cancellationToken);
+            var existingToken = await this.unitOfWork.RefreshTokens.GetByTokenAsync(hashedRefreshToken, false, cancellationToken: cancellationToken);
             if (existingToken != null && existingToken.UserId == userId)
             {
-                existingToken.IsUsed = true;
-                this.unitOfWork.RefreshTokens.RevokeToken(existingToken);
-                await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                await this.unitOfWork.RefreshTokens.RevokeTokenAsync(existingToken, cancellationToken);
 
                 // Blacklist the associated access token
                 var blacklistTokenRequest = new BlacklistTokenRequestDto(existingToken.JwtId, existingToken.JwtExpiry);
@@ -145,55 +143,72 @@ namespace RabbitHoleService.Services
         /// <returns>The result of the token refresh operation.</returns>
         public async Task<RefreshTokenResult> RefreshTokenAsync(string userId, string refreshToken, CancellationToken cancellationToken = default)
         {
-            var hashedRefreshToken = HashRefreshToken(refreshToken);
-            var existingToken = await this.unitOfWork.RefreshTokens.GetByTokenAsync(hashedRefreshToken, true, true, cancellationToken);
-            if (existingToken != null && existingToken.ExpiryDate > DateTimeOffset.UtcNow)
+            await using (var transaction = await this.unitOfWork.BeginTransactionAsync(cancellationToken))
             {
-                var cachedTokens = await this.tokenCacheService.GetCachedTokensForGracePeriodAsync(existingToken.Id, cancellationToken);
-                if (cachedTokens != null)
+                try
                 {
-                    return new RefreshTokenResult(true, cachedTokens);
-                }
-                else if (existingToken.IsUsed)
-                {
-                    // Breach detected - revoke all refresh tokens in the family and blacklist the associated access tokens
-                    var tokens = await this.unitOfWork.RefreshTokens.RevokeTokensByFamilyId(existingToken.FamilyId, cancellationToken);
-                    if (tokens.Any())
+                    var hashedRefreshToken = HashRefreshToken(refreshToken);
+                    var existingToken = await this.unitOfWork.RefreshTokens.GetByTokenAsync(hashedRefreshToken, true, cancellationToken: cancellationToken);
+                    if (existingToken != null && existingToken.ExpiryDate > DateTimeOffset.UtcNow)
                     {
-                        await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                        var affectedRows = await this.unitOfWork.RefreshTokens.RevokeTokenAsync(existingToken, cancellationToken);
+                        if (affectedRows == 0)
+                        {
+                            var cachedTokens = await this.tokenCacheService.GetCachedTokensForGracePeriodAsync(existingToken.Id, cancellationToken);
+                            if (cachedTokens != null)
+                            {
+                                // Return the cached tokens to allow valid concurrent requests to succeed.
+                                await transaction.CommitAsync(cancellationToken);
+                                return new RefreshTokenResult(true, cachedTokens);
+                            }
 
-                        // Blacklist all associated access tokens
-                        var blacklistTokenRequests = tokens.Select(token => new BlacklistTokenRequestDto(token.JwtId, token.JwtExpiry)).ToList();
-                        await this.tokenCacheService.BlacklistTokensAsync(blacklistTokenRequests, cancellationToken);
+                            // Token already revoked - Breach detected - revoke all refresh tokens in the family and blacklist the associated access tokens
+                            var tokens = await this.unitOfWork.RefreshTokens.RevokeTokensByFamilyId(existingToken.FamilyId, cancellationToken);
+                            if (tokens.Any())
+                            {
+                                await this.unitOfWork.SaveChangesAsync(cancellationToken);
+
+                                // Blacklist all associated access tokens
+                                var blacklistTokenRequests = tokens.Select(token => new BlacklistTokenRequestDto(token.JwtId, token.JwtExpiry)).ToList();
+                                await this.tokenCacheService.BlacklistTokensAsync(blacklistTokenRequests, cancellationToken);
+                            }
+
+                            await transaction.CommitAsync(cancellationToken);
+                            return new RefreshTokenResult(false, null);
+                        }
+                        else if (existingToken.UserId == userId && existingToken.User != null)
+                        {
+                            // Valid refresh token - generate new access and refresh tokens
+                            var expiry = DateTimeOffset.UtcNow.AddMinutes(Convert.ToDouble(this.jwtSettings["ExpiresInMinutes"]));
+                            var accessToken = await GenerateAccessToken(existingToken.User, expiry);
+                            var jtiClaim = accessToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti);
+                            if (jtiClaim != null && Guid.TryParse(jtiClaim.Value, out var jwtId))
+                            {
+                                var newRefreshToken = GenerateRefreshToken();
+                                var hashedNewRefreshToken = HashRefreshToken(newRefreshToken);
+                                this.unitOfWork.RefreshTokens.Add(new RefreshToken(hashedNewRefreshToken, userId, DateTimeOffset.UtcNow.AddDays(14), existingToken.FamilyId, jwtId, expiry));
+                                await this.unitOfWork.SaveChangesAsync(cancellationToken);
+
+                                // Cache the new tokens for a tiny grace period to allow valid concurrent requests to succeed.
+                                var accessTokenString = new JwtSecurityTokenHandler().WriteToken(accessToken);
+                                var tokens = new Tokens(accessTokenString, newRefreshToken);
+                                await this.tokenCacheService.CacheTokensForGracePeriodAsync(existingToken.Id, tokens, cancellationToken);
+                                await transaction.CommitAsync(cancellationToken);
+                                return new RefreshTokenResult(true, tokens);
+                            }
+                        }
                     }
 
+                    await transaction.CommitAsync(cancellationToken);
                     return new RefreshTokenResult(false, null);
                 }
-                else if (existingToken.UserId == userId && existingToken.User != null)
+                catch
                 {
-                    // Valid refresh token - generate new access and refresh tokens
-                    var expiry = DateTimeOffset.UtcNow.AddMinutes(Convert.ToDouble(this.jwtSettings["ExpiresInMinutes"]));
-                    var accessToken = await GenerateAccessToken(existingToken.User, expiry);
-                    var jtiClaim = accessToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti);
-                    if (jtiClaim != null && Guid.TryParse(jtiClaim.Value, out var jwtId))
-                    {
-                        var newRefreshToken = GenerateRefreshToken();
-                        var hashedNewRefreshToken = HashRefreshToken(newRefreshToken);
-                        this.unitOfWork.RefreshTokens.Add(new RefreshToken(hashedNewRefreshToken, userId, DateTimeOffset.UtcNow.AddDays(14), existingToken.FamilyId, jwtId, expiry));
-                        this.unitOfWork.RefreshTokens.RevokeToken(existingToken);
-                        await this.unitOfWork.SaveChangesAsync(cancellationToken);
-
-                        // Cache the new tokens for a tiny grace period to allow valid concurrent requests to succeed.
-                        var accessTokenString = new JwtSecurityTokenHandler().WriteToken(accessToken);
-                        var tokens = new Tokens(accessTokenString, newRefreshToken);
-                        await this.tokenCacheService.CacheTokensForGracePeriodAsync(existingToken.Id, tokens, cancellationToken);
-
-                        return new RefreshTokenResult(true, tokens);
-                    }
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
                 }
             }
             
-            return new RefreshTokenResult(false, null);
         }
 
         private static string GenerateRefreshToken()

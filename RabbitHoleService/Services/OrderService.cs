@@ -318,7 +318,6 @@ namespace RabbitHoleService.Services
                         }
                     }
 
-                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
                     if (updateData.Status!.Value == OrderStatus.Cancelled && booksToUpdateMap.Count > 0)
                     {
                         await this.cacheEvictor.InvalidateCacheForBooks(booksToUpdateMap.Values, cancellationToken);
