@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Objects;
 using RabbitHoleService.Services;
@@ -32,12 +33,15 @@ namespace RabbitHoleService.Controllers
         /// <param name="loginData">The login data.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the login operation.</returns>
+        [EnableRateLimiting("AuthLoginPolicy")]
         [AllowAnonymous]
         [HttpPost("login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] LoginDto loginData, CancellationToken cancellationToken)
         {
+            // Add username based rate limiting.
+
             AuthenticationResult authResult = await this.authService.LoginAsync(loginData, cancellationToken);
             if (authResult.Succeeded)
             {
@@ -92,6 +96,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="refreshToken">The refresh token.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the logout operation.</returns>
+        [EnableRateLimiting("AuthPolicy")]
         [Authorize]
         [HttpPost("logout")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -111,6 +116,7 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the logout operation.</returns>
+        [EnableRateLimiting("AuthPolicy")]
         [Authorize]
         [HttpPost("logout-all")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -131,6 +137,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="refreshToken">The refresh token.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the token refresh operation.</returns>
+        [EnableRateLimiting("AuthPolicy")]
         [Authorize]
         [HttpPost("refresh-token")]
         [ProducesResponseType(StatusCodes.Status200OK)]

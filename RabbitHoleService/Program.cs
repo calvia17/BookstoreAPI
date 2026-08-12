@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -16,6 +17,12 @@ using System.Text.Json.Serialization;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Extracts the IP address and protocol from reverse proxies and load balancers.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = jwtSettings["Key"];
@@ -112,6 +119,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("StaffOrAdmin", policy => policy.RequireRole(RoleType.Staff.ToString(), RoleType.Admin.ToString()));
 });
 
+// Configure rate limiting
+builder.Services.AddRateLimitPolicies(builder.Configuration);
+
 // Configure Redis for output caching
 builder.Services.AddStackExchangeRedisOutputCache(options =>
 {
@@ -202,9 +212,13 @@ using (var scope = app.Services.CreateScope())
     await adminSeeder.SeedAdminAsync();
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
+app.UseRouting();
 app.UseAuthentication();
 app.UseMiddleware<TokenBlacklistMiddleware>();
+app.UseMiddleware<LoginDetailsExtractionMiddleware>();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.UseOutputCache();
 app.MapControllers();

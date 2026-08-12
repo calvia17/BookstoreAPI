@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.RateLimiting;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Services;
@@ -30,9 +31,10 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The books.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [AllowAnonymous]
-        [HttpGet]
         [OutputCache(PolicyName = "DynamicData", Tags = ["books:all"])]
+        [HttpGet]
         public async Task<ActionResult<IEnumerable<BookDto>>> GetAllBooks(CancellationToken cancellationToken)
         {
             // Compare the etag sent by the client with the latest last modified timestamp of the books.
@@ -59,9 +61,10 @@ namespace RabbitHoleService.Controllers
         /// <param name="id">The book id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The book.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [AllowAnonymous]
-        [HttpGet("{id}")]
         [OutputCache(PolicyName = "DynamicData")]
+        [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -95,9 +98,10 @@ namespace RabbitHoleService.Controllers
         /// <param name="request">The search request.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The books.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [AllowAnonymous]
-        [HttpGet("search")]
         [OutputCache(PolicyName = "DynamicData", VaryByQueryKeys = ["Isbn", "Name", "Author", "MinimumCost", "MaximumCost", "Genres"], Tags = ["books:search"])]
+        [HttpGet("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<IEnumerable<BookDto>>> FindBooks([FromQuery] BookSearchRequestDto request, CancellationToken cancellationToken)
@@ -119,6 +123,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="newBookData">The new book data.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added book.</returns>
+        [EnableRateLimiting("BookManagementPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -153,6 +158,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="newBooksData">The new books data.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added books.</returns>
+        [EnableRateLimiting("BookManagementPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpPost("bulk")]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -198,6 +204,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="updateData">The data to update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
+        [EnableRateLimiting("BookManagementPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpPatch("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -242,6 +249,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="updateData">The data to update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
+        [EnableRateLimiting("BookManagementPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpPatch("bulk")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -296,6 +304,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="id">The book id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
+        [EnableRateLimiting("BookManagementPolicy")]
         [Authorize(Policy = "AdminOnly")]
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]

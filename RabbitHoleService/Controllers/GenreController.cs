@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.RateLimiting;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Services;
 
@@ -29,9 +30,10 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The genres.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [AllowAnonymous]
-        [HttpGet]
         [OutputCache(PolicyName = "StaticData")]
+        [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<GenreDto>>> GetAllGenres(CancellationToken cancellationToken)
         {

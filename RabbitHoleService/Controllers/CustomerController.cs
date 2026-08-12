@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Objects;
@@ -31,6 +32,7 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The customers.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAllCustomers(CancellationToken cancellationToken)
@@ -45,6 +47,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="id">The customer id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The customer.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -78,6 +81,7 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The customer.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [Authorize]
         [HttpGet("me")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -118,6 +122,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The search request.</param>
         /// <returns>The customers.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -141,6 +146,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="registerData">The registration data.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added customer.</returns>
+        [EnableRateLimiting("UserManagementPolicy")]
         [AllowAnonymous]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -174,6 +180,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="newCustomerData">The new customer data.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added customer.</returns>
+        [EnableRateLimiting("UserManagementPolicy")]
         [AllowAnonymous]
         [HttpPost("guest")]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -217,6 +224,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="updateData">The data to update.</param>
         /// <returns>No content.</returns>
+        [EnableRateLimiting("UserManagementPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpPatch("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -259,6 +267,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="updateData">The update data.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the update operation.</returns>
+        [EnableRateLimiting("UserManagementPolicy")]
         [Authorize]
         [HttpPatch("me")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -305,6 +314,7 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="password">The password.</param>
         /// <returns>The result of the change password operation.</returns>
+        [EnableRateLimiting("UserManagementPolicy")]
         [Authorize]
         [HttpPatch("me/password")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -343,6 +353,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="id">The customer id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
+        [EnableRateLimiting("UserManagementPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -377,6 +388,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="refreshToken">The refresh token.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The result of the logout operation.</returns>
+        [EnableRateLimiting("UserManagementPolicy")]
         [Authorize]
         [HttpDelete("me")]
         [ProducesResponseType(StatusCodes.Status200OK)]

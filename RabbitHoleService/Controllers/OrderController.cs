@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RabbitHoleService.Dtos;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Objects;
@@ -31,6 +32,7 @@ namespace RabbitHoleService.Controllers
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The orders.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -41,11 +43,87 @@ namespace RabbitHoleService.Controllers
         }
 
         /// <summary>
+        /// Gets the orders for a customer.
+        /// </summary>
+        /// <param name="customerId">The customer id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The orders.</returns>
+        [EnableRateLimiting("ReadPolicy")]
+        [Authorize(Policy = "StaffOrAdmin")]
+        [HttpGet("customer/{customerId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersForCustomer([FromRoute] Guid customerId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var orders = await this.orderService.GetOrdersForCustomerAsync(customerId, cancellationToken);
+                return Ok(orders);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (PersonNotFoundException<Customer> ex)
+            {
+                return NotFound(new
+                {
+                    Title = "Customer Not Found",
+                    Status = StatusCodes.Status404NotFound,
+                    Detail = ex.Message,
+                    CustomerId = ex.PersonId
+                });
+            }
+        }
+
+        /// <summary>
+        /// Gets the orders for the authenticated customer.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The orders.</returns>
+        [EnableRateLimiting("ReadPolicy")]
+        [Authorize]
+        [HttpGet("me")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (userId == null)
+                {
+                    return Unauthorized();
+                }
+
+                var orders = await this.orderService.GetOrdersAsync(userId, cancellationToken);
+                return Ok(orders);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (PersonNotFoundException<Customer> ex)
+            {
+                return NotFound(new
+                {
+                    Title = "Customer Not Found",
+                    Status = StatusCodes.Status404NotFound,
+                    Detail = ex.Message,
+                    CustomerId = ex.PersonId
+                });
+            }
+        }
+
+        /// <summary>
         /// Gets an order.
         /// </summary>
         /// <param name="id">The order id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The customer.</returns>
+        [EnableRateLimiting("ReadPolicy")]
         [Authorize]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -87,6 +165,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="newOrderData">The new order data.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added order.</returns>
+        [EnableRateLimiting("CheckoutPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -175,6 +254,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="idempotencyKey">The idempotency key.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added order.</returns>
+        [EnableRateLimiting("CheckoutPolicy")]
         [Authorize]
         [HttpPost("me")]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -269,6 +349,7 @@ namespace RabbitHoleService.Controllers
         /// <param name="updateData">The data to update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
+        [EnableRateLimiting("CheckoutPolicy")]
         [Authorize(Policy = "StaffOrAdmin")]
         [HttpPatch("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -306,79 +387,6 @@ namespace RabbitHoleService.Controllers
                     OrderId = ex.OrderId,
                     OldStatus = ex.OldStatus,
                     NewStatus = ex.NewStatus
-                });
-            }
-        }
-
-        /// <summary>
-        /// Gets the orders for a customer.
-        /// </summary>
-        /// <param name="customerId">The customer id.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The orders.</returns>
-        [Authorize(Policy = "StaffOrAdmin")]
-        [HttpGet("customer/{customerId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersForCustomer([FromRoute] Guid customerId, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var orders = await this.orderService.GetOrdersForCustomerAsync(customerId, cancellationToken);
-                return Ok(orders);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (PersonNotFoundException<Customer> ex)
-            {
-                return NotFound(new
-                {
-                    Title = "Customer Not Found",
-                    Status = StatusCodes.Status404NotFound,
-                    Detail = ex.Message,
-                    CustomerId = ex.PersonId
-                });
-            }
-        }
-
-        /// <summary>
-        /// Gets the orders for the authenticated customer.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The orders.</returns>
-        [Authorize]
-        [HttpGet("me")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders(CancellationToken cancellationToken)
-        {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized();
-                }
-
-                var orders = await this.orderService.GetOrdersAsync(userId, cancellationToken);
-                return Ok(orders);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (PersonNotFoundException<Customer> ex)
-            {
-                return NotFound(new
-                {
-                    Title = "Customer Not Found",
-                    Status = StatusCodes.Status404NotFound,
-                    Detail = ex.Message,
-                    CustomerId = ex.PersonId
                 });
             }
         }
