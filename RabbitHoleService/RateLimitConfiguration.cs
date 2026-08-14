@@ -39,7 +39,7 @@ namespace RabbitHoleService
                         return RateLimitPartition.GetNoLimiter("pass");
                     }
 
-                    var partitionKey = GetPartitionKey(context.Connection.RemoteIpAddress, null, null);
+                    var partitionKey = GetPartitionKey("GlobalPolicy", context.Connection.RemoteIpAddress, null, null);
                     return RedisRateLimitPartition.GetTokenBucketRateLimiter(partitionKey, _ => new RedisTokenBucketRateLimiterOptions
                     {
                         ConnectionMultiplexerFactory = () => context.RequestServices.GetRequiredService<IConnectionMultiplexer>(),
@@ -52,7 +52,7 @@ namespace RabbitHoleService
                 // This policy prevents brute-force attacks on the login endpoint by limiting the number of login requests with the same username.
                 options.AddPolicy("AuthLoginPolicy", context =>
                 {
-                    var partitionKey = GetPartitionKey(null, null, context.Items["LoginEmail"]?.ToString());
+                    var partitionKey = GetPartitionKey("AuthLoginPolicy", null, null, context.Items["LoginEmail"]?.ToString());
                     return RedisRateLimitPartition.GetTokenBucketRateLimiter(partitionKey, _ => new RedisTokenBucketRateLimiterOptions
                     {
                         ConnectionMultiplexerFactory = () => context.RequestServices.GetRequiredService<IConnectionMultiplexer>(),
@@ -65,8 +65,8 @@ namespace RabbitHoleService
                 options.AddPolicy("ReadPolicy", context =>
                 {
                     var partitionKey = context.User?.Identity?.IsAuthenticated == true
-                        ? GetPartitionKey(null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null)
-                        : GetPartitionKey(context.Connection.RemoteIpAddress, null, null);
+                        ? GetPartitionKey("ReadPolicy", null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null)
+                        : GetPartitionKey("ReadPolicy", context.Connection.RemoteIpAddress, null, null);
 
                     return RedisRateLimitPartition.GetTokenBucketRateLimiter(partitionKey, _ => new RedisTokenBucketRateLimiterOptions
                     {
@@ -79,7 +79,7 @@ namespace RabbitHoleService
 
                 options.AddPolicy("AuthPolicy", context =>
                 {
-                    var partitionKey = GetPartitionKey(null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null);
+                    var partitionKey = GetPartitionKey("AuthPolicy", null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null);
                     return RedisRateLimitPartition.GetTokenBucketRateLimiter(partitionKey, _ => new RedisTokenBucketRateLimiterOptions
                     {
                         ConnectionMultiplexerFactory = () => context.RequestServices.GetRequiredService<IConnectionMultiplexer>(),
@@ -92,8 +92,8 @@ namespace RabbitHoleService
                 options.AddPolicy("CheckoutPolicy", context =>
                 {
                     var partitionKey = context.User?.Identity?.IsAuthenticated == true
-                        ? GetPartitionKey(null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null)
-                        : GetPartitionKey(context.Connection.RemoteIpAddress, null, null);
+                        ? GetPartitionKey("CheckoutPolicy", null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null)
+                        : GetPartitionKey("CheckoutPolicy", context.Connection.RemoteIpAddress, null, null);
                     return RedisRateLimitPartition.GetSlidingWindowRateLimiter(partitionKey, _ => new RedisSlidingWindowRateLimiterOptions
                     {
                         ConnectionMultiplexerFactory = () => context.RequestServices.GetRequiredService<IConnectionMultiplexer>(),
@@ -104,7 +104,7 @@ namespace RabbitHoleService
 
                 options.AddPolicy("BookManagementPolicy", context =>
                 {
-                    var partitionKey = GetPartitionKey(null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null);
+                    var partitionKey = GetPartitionKey("BookManagementPolicy", null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null);
                     return RedisRateLimitPartition.GetTokenBucketRateLimiter(partitionKey, _ => new RedisTokenBucketRateLimiterOptions
                     {
                         ConnectionMultiplexerFactory = () => context.RequestServices.GetRequiredService<IConnectionMultiplexer>(),
@@ -116,7 +116,7 @@ namespace RabbitHoleService
 
                 options.AddPolicy("UserManagementPolicy", context =>
                 {
-                    var partitionKey = GetPartitionKey(null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null);
+                    var partitionKey = GetPartitionKey("UserManagementPolicy", null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null);
                     return RedisRateLimitPartition.GetSlidingWindowRateLimiter(partitionKey, _ => new RedisSlidingWindowRateLimiterOptions
                     {
                         ConnectionMultiplexerFactory = () => context.RequestServices.GetRequiredService<IConnectionMultiplexer>(),
@@ -129,25 +129,25 @@ namespace RabbitHoleService
             return services;
         }
 
-        private static string GetPartitionKey(IPAddress? ipAddress, string? username, string? email)
+        private static string GetPartitionKey(string policyName, IPAddress? ipAddress, string? username, string? email)
         {
             if (ipAddress != null)
             {
-                return $"ip:{ipAddress}";
+                return $"{policyName}:ip:{ipAddress}";
             }
             else if (!string.IsNullOrEmpty(username))
             {
-                return $"username:{username}";
+                return $"{policyName}:username:{username}";
             }
             else if (!string.IsNullOrEmpty(email))
             {
-                return $"email:{email}";
+                return $"{policyName}:email:{email}";
             }
             else
             {
                 // If no key can be verified, pool all requests into a single partition key to avoid bypassing the rate limit.
                 // Otherwise, hackers could hide their IP address to bypass the rate limit.
-                return $"unknown";
+                return $"{policyName}:unknown";
             }
         }
     }
