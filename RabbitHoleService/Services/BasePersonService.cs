@@ -279,8 +279,8 @@ namespace RabbitHoleService.Services
         /// <returns>A value indicating whether the password update was successful.</returns>
         public async Task UpdatePasswordAsync(string userId, PasswordDto passwordData)
         {
-            ArgumentNullException.ThrowIfNull(nameof(userId));
-            ArgumentNullException.ThrowIfNull(nameof(passwordData));
+            ArgumentNullException.ThrowIfNull(userId);
+            ArgumentNullException.ThrowIfNull(passwordData);
             var user = await this.userManager.FindByIdAsync(userId);
             if (user == null)
             {

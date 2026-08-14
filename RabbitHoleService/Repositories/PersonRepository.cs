@@ -42,7 +42,6 @@ namespace RabbitHoleService.Repositories
         /// <returns>The person.</returns>
         public async Task<TEntity?> GetAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(id, nameof(id));
             IQueryable<TEntity> personsQuery = this.context.Set<TEntity>();
             if (!trackChanges)
             {
@@ -56,19 +55,20 @@ namespace RabbitHoleService.Repositories
         /// <summary>
         /// Gets the person by the user id.
         /// </summary>
-        /// <param name="phone">The user id.</param>
+        /// <param name="userId">The user id.</param>
         /// <param name="trackChanges">A value indicating whether changes should be tracked.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The person.</returns>
-        public async Task<TEntity?> GetByUserIdAsync(string phone, bool trackChanges = false, CancellationToken cancellationToken = default)
+        public async Task<TEntity?> GetByUserIdAsync(string userId, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(userId);
             IQueryable<TEntity> personsQuery = this.context.Set<TEntity>();
             if (!trackChanges)
             {
                 personsQuery = personsQuery.AsNoTracking();
             }
 
-            var person = await personsQuery.FirstOrDefaultAsync(c => !c.IsDeleted && c.UserId == phone, cancellationToken);
+            var person = await personsQuery.FirstOrDefaultAsync(c => !c.IsDeleted && c.UserId == userId, cancellationToken);
             return person;
         }
 
@@ -81,6 +81,7 @@ namespace RabbitHoleService.Repositories
         /// <returns>The person.</returns>
         public async Task<TEntity?> GetByPhoneAsync(string phone, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(phone);
             IQueryable<TEntity> personsQuery = this.context.Set<TEntity>();
             if (!trackChanges)
             {
@@ -100,6 +101,7 @@ namespace RabbitHoleService.Repositories
         /// <returns>The person.</returns>
         public async Task<TEntity?> GetByEmailAsync(string email, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(email);
             IQueryable<TEntity> personsQuery = this.context.Set<TEntity>();
             if (!trackChanges)
             {

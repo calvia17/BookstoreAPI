@@ -111,7 +111,6 @@ namespace RabbitHoleService.Repositories
         /// <returns>The number of affected rows.</returns>
         public async Task<int> UpdateStatusAsync(Guid orderId, OrderStatus newStatus, IReadOnlyCollection<OrderStatus> allowedPreviousStates, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(orderId);
             var affectedRows = await this.context.Orders.Where(o => o.Id == orderId && allowedPreviousStates.Contains(o.Status))
                 .ExecuteUpdateAsync(x => x.SetProperty(o => o.Status, newStatus), cancellationToken);
             return affectedRows;
