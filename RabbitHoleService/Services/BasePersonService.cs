@@ -105,49 +105,41 @@ namespace RabbitHoleService.Services
 
             await using (var transaction = await this.unitOfWork.BeginTransactionAsync(cancellationToken))
             {
-                try
-                {
-                    TDto? newPerson;
-                    var userId = await this.RegisterUserAsync(registerData.Name, registerData.Email, registerData.Password, registerData.PhoneNumber, role);
-                    var repository = this.repositoryFactory();
-                    var personByPhone = await repository.GetByPhoneAsync(registerData.PhoneNumber, true, cancellationToken);
-                    var personByEmail = await repository.GetByEmailAsync(registerData.Email, cancellationToken: cancellationToken);
+                TDto? newPerson;
+                var userId = await this.RegisterUserAsync(registerData.Name, registerData.Email, registerData.Password, registerData.PhoneNumber, role);
+                var repository = this.repositoryFactory();
+                var personByPhone = await repository.GetByPhoneAsync(registerData.PhoneNumber, true, cancellationToken);
+                var personByEmail = await repository.GetByEmailAsync(registerData.Email, cancellationToken: cancellationToken);
 
-                    if (personByPhone != null && personByEmail != null && personByPhone.Id == personByEmail.Id)
+                if (personByPhone != null && personByEmail != null && personByPhone.Id == personByEmail.Id)
+                {
+                    if (role == RoleType.Customer && personByPhone.UserId == null)
                     {
-                        if (role == RoleType.Customer && personByPhone.UserId == null)
-                        {
-                            // Link existing guest customer to the new user account
-                            personByPhone.UserId = userId;
-                            await this.unitOfWork.SaveChangesAsync(cancellationToken);
-                            newPerson = this.toDto(personByPhone);
-                        }
-                        else
-                        {
-                            // The person is already linked to another user account
-                            throw new RegistrationFailedException("A user with the same email and phone number already exists.");
-                        }
-                    }
-                    else if (personByPhone != null || personByEmail != null)
-                    {
-                        throw new RegistrationFailedException("A user with the same email or phone number already exists.");
+                        // Link existing guest customer to the new user account
+                        personByPhone.UserId = userId;
+                        await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                        newPerson = this.toDto(personByPhone);
                     }
                     else
                     {
-                        var personToCreate = this.CreateEntity(registerData, userId);
-                        repository.Add(personToCreate);
-                        await this.unitOfWork.SaveChangesAsync(cancellationToken);
-                        newPerson = this.toDto(personToCreate);
+                        // The person is already linked to another user account
+                        throw new RegistrationFailedException("A user with the same email and phone number already exists.");
                     }
-
-                    await transaction.CommitAsync(cancellationToken);
-                    return newPerson;
                 }
-                catch
+                else if (personByPhone != null || personByEmail != null)
                 {
-                    await transaction.RollbackAsync(cancellationToken);
-                    throw;
+                    throw new RegistrationFailedException("A user with the same email or phone number already exists.");
                 }
+                else
+                {
+                    var personToCreate = this.CreateEntity(registerData, userId);
+                    repository.Add(personToCreate);
+                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                    newPerson = this.toDto(personToCreate);
+                }
+
+                await transaction.CommitAsync(cancellationToken);
+                return newPerson;
             }
         }
 
@@ -244,46 +236,38 @@ namespace RabbitHoleService.Services
 
             await using (var transaction = await this.unitOfWork.BeginTransactionAsync(cancellationToken))
             {
-                try
+                var user = await this.userManager.FindByIdAsync(userId);
+                if (user == null)
                 {
-                    var user = await this.userManager.FindByIdAsync(userId);
-                    if (user == null)
-                    {
-                        throw new PersonNotFoundException<TEntity>(userId);
-                    }
-
-                    var repository = this.repositoryFactory();
-                    var person = await repository.GetByUserIdAsync(userId, true, cancellationToken);
-                    if (person == null)
-                    {
-                        throw new PersonNotFoundException<TEntity>(userId);
-                    }
-
-                    await UpdateProperties(updateData, person, repository, cancellationToken);
-                    if (!string.IsNullOrEmpty(updateData.Name))
-                    {
-                        user.Name = updateData.Name;
-                    }
-                    if (!string.IsNullOrEmpty(updateData.PhoneNumber))
-                    {
-                        user.PhoneNumber = updateData.PhoneNumber;
-                    }
-
-                    var result = await this.userManager.UpdateAsync(user);
-
-                    if (!result.Succeeded)
-                    {
-                        throw new UpdatePersonFailedException(userId,string.Join("\n", result.Errors.Select(e => e.Description)));
-                    }
-
-                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
-                    await transaction.CommitAsync(cancellationToken);
+                    throw new PersonNotFoundException<TEntity>(userId);
                 }
-                catch
+
+                var repository = this.repositoryFactory();
+                var person = await repository.GetByUserIdAsync(userId, true, cancellationToken);
+                if (person == null)
                 {
-                    await transaction.RollbackAsync(cancellationToken);
-                    throw;
+                    throw new PersonNotFoundException<TEntity>(userId);
                 }
+
+                await UpdateProperties(updateData, person, repository, cancellationToken);
+                if (!string.IsNullOrEmpty(updateData.Name))
+                {
+                    user.Name = updateData.Name;
+                }
+                if (!string.IsNullOrEmpty(updateData.PhoneNumber))
+                {
+                    user.PhoneNumber = updateData.PhoneNumber;
+                }
+
+                var result = await this.userManager.UpdateAsync(user);
+
+                if (!result.Succeeded)
+                {
+                    throw new UpdatePersonFailedException(userId, string.Join("\n", result.Errors.Select(e => e.Description)));
+                }
+
+                await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
         }
 
@@ -353,34 +337,26 @@ namespace RabbitHoleService.Services
             ArgumentNullException.ThrowIfNull(userId);
             await using (var transaction = await this.unitOfWork.BeginTransactionAsync(cancellationToken))
             {
-                try
+                var user = await this.userManager.FindByIdAsync(userId);
+                if (user == null)
                 {
-                    var user = await this.userManager.FindByIdAsync(userId);
-                    if (user == null)
-                    {
-                        throw new PersonNotFoundException<TEntity>(userId);
-                    }
-
-                    user.IsDeleted = true;
-                    user.UserName = $"deleted_{user.Id}"; // To avoid future registration conflicts with the same email.
-                    await this.userManager.UpdateAsync(user);
-                    person ??= await this.repositoryFactory().GetByUserIdAsync(userId, true, cancellationToken);
-                    if (person == null)
-                    {
-                        throw new PersonNotFoundException<TEntity>(userId);
-                    }
-                    
-                    person.IsDeleted = true;
-
-                    await this.unitOfWork.RefreshTokens.RevokeTokensByUserId(userId, cancellationToken);
-                    await this.unitOfWork.SaveChangesAsync(cancellationToken);
-                    await transaction.CommitAsync(cancellationToken);
+                    throw new PersonNotFoundException<TEntity>(userId);
                 }
-                catch
+
+                user.IsDeleted = true;
+                user.UserName = $"deleted_{user.Id}"; // To avoid future registration conflicts with the same email.
+                await this.userManager.UpdateAsync(user);
+                person ??= await this.repositoryFactory().GetByUserIdAsync(userId, true, cancellationToken);
+                if (person == null)
                 {
-                    await transaction.RollbackAsync(cancellationToken);
-                    throw;
+                    throw new PersonNotFoundException<TEntity>(userId);
                 }
+
+                person.IsDeleted = true;
+
+                await this.unitOfWork.RefreshTokens.RevokeTokensByUserId(userId, cancellationToken);
+                await this.unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
         }
 

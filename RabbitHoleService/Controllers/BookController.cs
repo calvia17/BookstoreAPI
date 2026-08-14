@@ -35,6 +35,8 @@ namespace RabbitHoleService.Controllers
         [AllowAnonymous]
         [OutputCache(PolicyName = "DynamicData", Tags = ["books:all"])]
         [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status304NotModified)]
         public async Task<ActionResult<IEnumerable<BookDto>>> GetAllBooks(CancellationToken cancellationToken)
         {
             // Compare the etag sent by the client with the latest last modified timestamp of the books.
