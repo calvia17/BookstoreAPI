@@ -2,9 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using RabbitHoleService.Dtos;
-using RabbitHoleService.Objects;
 using RabbitHoleService.Services;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace RabbitHoleService.Controllers

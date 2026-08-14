@@ -72,7 +72,11 @@ namespace RabbitHoleService.Objects
         /// <param name="quantity">The quantity.</param>
         public void AddBook(Book book, int quantity)
         {
-            var bookOrder = new BookOrder(book.Id, this.Id, quantity, book.Cost);
+            var bookOrder = new BookOrder(book.Id, this.Id, quantity, book.Cost)
+            {
+                Book = book
+            };
+
             this.BookOrders.Add(bookOrder);
             this.TotalCost += bookOrder.PriceAtPurchase * bookOrder.Quantity;
         }
