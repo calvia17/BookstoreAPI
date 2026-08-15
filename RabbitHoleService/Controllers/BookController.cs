@@ -36,23 +36,8 @@ namespace RabbitHoleService.Controllers
         [OutputCache(PolicyName = "DynamicData", Tags = ["books:all"])]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status304NotModified)]
         public async Task<ActionResult<IEnumerable<BookDto>>> GetAllBooks(CancellationToken cancellationToken)
         {
-            // Compare the etag sent by the client with the latest last modified timestamp of the books.
-            // Even if the server caches is cleared, the last modified timestamp from the database will be used to generate the latest etag.
-            // If the client's etag matches the latest etag, return 304 Not Modified.
-
-            // If server cache exists, the etags are compared by the OutputCache middleware, and this method will not be executed.
-            // In case the server cache is cleared, this method will be executed and the etags will be compared here to return 304 Not Modified when they match.
-            var lastModified = await this.bookService.GetMaxLastModifiedAsync(cancellationToken);
-            var currentEtag = $"\"{lastModified.Ticks}\"";
-            Response.Headers.ETag = currentEtag;
-            if (Request.Headers.TryGetValue("If-None-Match", out var etag) && etag.Contains(currentEtag))
-            {
-                return StatusCode(StatusCodes.Status304NotModified);
-            }
-
             var books = await this.bookService.GetAllAsync(cancellationToken);
             return Ok(books);
         }
