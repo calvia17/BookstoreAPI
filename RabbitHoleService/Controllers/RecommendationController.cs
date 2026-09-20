@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Exceptions.Recommendations;
 using RabbitHoleService.Services;
@@ -29,6 +31,8 @@ namespace RabbitHoleService.Controllers
         /// <param name="image">The image file.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The correlation id.</returns>
+        [EnableRateLimiting("RecommendationRequestPolicy")]
+        [AllowAnonymous]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -51,6 +55,8 @@ namespace RabbitHoleService.Controllers
         /// <param name="correlationId">The correlation id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The recommendation result.</returns>
+        [EnableRateLimiting("RecommendationRetrievePolicy")]
+        [AllowAnonymous]
         [HttpGet("{correlationId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -58,6 +64,10 @@ namespace RabbitHoleService.Controllers
         [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> RetrieveRecommendations(Guid correlationId, CancellationToken cancellationToken)
         {
+            // This endpoint will be polled by the client until the recommendation result is completed or failed.
+            // We cannot cache pending requests since that woould cause the client to receive pending status even when the result is completed/ failed.
+            // Caching a completed/ failed result is unnecessary since the client will stop polling once the result is completed/ failed.
+            // So caching it would only cause cache pollution since it won't be retrieved again with the same correlation id.
             try
             {
                 var result = await this.recommendationService.RetrieveRecommendationsAsync(correlationId, cancellationToken);

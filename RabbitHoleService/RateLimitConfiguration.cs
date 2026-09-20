@@ -124,6 +124,33 @@ namespace RabbitHoleService
                         PermitLimit = 20,
                     });
                 });
+
+                options.AddPolicy("RecommendationRequestPolicy", context =>
+                {
+                    var partitionKey = context.User?.Identity?.IsAuthenticated == true
+                         ? GetPartitionKey("RecommendationRequestPolicy", null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null)
+                         : GetPartitionKey("RecommendationRequestPolicy", context.Connection.RemoteIpAddress, null, null);
+                    return RedisRateLimitPartition.GetSlidingWindowRateLimiter(partitionKey, _ => new RedisSlidingWindowRateLimiterOptions
+                    {
+                        ConnectionMultiplexerFactory = () => context.RequestServices.GetRequiredService<IConnectionMultiplexer>(),
+                        Window = TimeSpan.FromHours(1),
+                        PermitLimit = 10,
+                    });
+                });
+
+                // More generous rate limit to allow polling for recommendation results.
+                options.AddPolicy("RecommendationRetrievePolicy", context =>
+                {
+                    var partitionKey = context.User?.Identity?.IsAuthenticated == true
+                         ? GetPartitionKey("RecommendationRetrievePolicy", null, context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, null)
+                         : GetPartitionKey("RecommendationRetrievePolicy", context.Connection.RemoteIpAddress, null, null);
+                    return RedisRateLimitPartition.GetSlidingWindowRateLimiter(partitionKey, _ => new RedisSlidingWindowRateLimiterOptions
+                    {
+                        ConnectionMultiplexerFactory = () => context.RequestServices.GetRequiredService<IConnectionMultiplexer>(),
+                        Window = TimeSpan.FromMinutes(1),
+                        PermitLimit = 30,
+                    });
+                });
             });
 
             return services;
