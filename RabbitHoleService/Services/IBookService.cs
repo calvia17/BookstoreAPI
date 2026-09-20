@@ -23,13 +23,6 @@ namespace RabbitHoleService.Services
         Task<BookDto> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Gets the maximum last modified date of all books.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The maximum last modified date.</returns>
-        Task<DateTimeOffset> GetMaxLastModifiedAsync(CancellationToken cancellationToken = default);
-
-        /// <summary>
         /// Creates a new book.
         /// </summary>
         /// <param name="newBookData">The book to create.</param>

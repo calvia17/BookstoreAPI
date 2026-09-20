@@ -45,6 +45,11 @@ namespace RabbitHoleService.Data
         public IRefreshTokenRepository RefreshTokens { get; }
 
         /// <summary>
+        /// The recommendation requests.
+        /// </summary>
+        public IRecommendationRequestRepository RecommendationRequests { get; }
+
+        /// <summary>
         /// Begins the transaction.
         /// </summary>
         /// <returns>A task representing the transaction start.</returns>

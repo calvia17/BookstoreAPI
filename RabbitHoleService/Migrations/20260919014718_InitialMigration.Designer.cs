@@ -12,7 +12,7 @@ using RabbitHoleService.Models;
 namespace RabbitHoleService.Migrations
 {
     [DbContext(typeof(BookStoreContext))]
-    [Migration("20260801133626_InitialMigration")]
+    [Migration("20260919014718_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace RabbitHoleService.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.12")
+                .HasAnnotation("ProductVersion", "10.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -476,6 +476,32 @@ namespace RabbitHoleService.Migrations
                         .HasDatabaseName("Orders_IdempotencyKey");
 
                     b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("RabbitHoleService.Objects.RecommendationRequest", b =>
+                {
+                    b.Property<Guid>("CorrelationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExtractedIsbnsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("CorrelationId");
+
+                    b.ToTable("RecommendationRequests");
                 });
 
             modelBuilder.Entity("RabbitHoleService.Objects.RefreshToken", b =>

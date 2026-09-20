@@ -85,6 +85,22 @@ namespace RabbitHoleService.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RecommendationRequests",
+                columns: table => new
+                {
+                    CorrelationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    ExtractedIsbnsJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ResultJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Error = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RequestedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RecommendationRequests", x => x.CorrelationId);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -535,6 +551,9 @@ namespace RabbitHoleService.Migrations
 
             migrationBuilder.DropTable(
                 name: "BookOrder");
+
+            migrationBuilder.DropTable(
+                name: "RecommendationRequests");
 
             migrationBuilder.DropTable(
                 name: "RefreshTokens");

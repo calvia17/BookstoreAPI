@@ -26,13 +26,6 @@ namespace RabbitHoleService.Repositories
         Task<Book?> GetAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Gets the maximum last modified date of all books.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The maximum last modified date.</returns>
-        Task<DateTimeOffset> GetMaxLastModifiedAsync(CancellationToken cancellationToken = default);
-
-        /// <summary>
         /// Gets the books by the ids.
         /// </summary>
         /// <param name="ids">The ids.</param>

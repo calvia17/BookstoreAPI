@@ -9,6 +9,7 @@ namespace RabbitHoleService.Services
     public class RefreshTokenCleanupService : BackgroundService
     {
         private readonly IServiceProvider serviceProvider;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="RefreshTokenCleanupService" /> class.
         /// </summary>

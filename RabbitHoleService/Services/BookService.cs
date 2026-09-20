@@ -1,7 +1,11 @@
 ﻿using RabbitHoleService.Data;
 using RabbitHoleService.Dtos;
+using RabbitHoleService.Events;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Mappers;
+using RabbitHoleService.Objects;
+using static RabbitHoleService.Events.BooksAddedEvent;
+using static RabbitHoleService.Events.BooksUpdatedEvent;
 
 namespace RabbitHoleService.Services
 {
@@ -12,16 +16,19 @@ namespace RabbitHoleService.Services
     {
         private readonly IUnitOfWork unitOfWork;
         private readonly IBookCacheEvictor cacheEvictor;
+        private readonly IBookEventPublisher eventPublisher;
 
         /// <summary>
         /// Initializes the book service.
         /// </summary>
         /// <param name="unitOfWork">The unit of work.</param>
         /// <param name="cacheEvictor">The cache evictor.</param>
-        public BookService(IUnitOfWork unitOfWork, IBookCacheEvictor cacheEvictor)
+        /// <param name="eventPublisher">The event publisher.</param>
+        public BookService(IUnitOfWork unitOfWork, IBookCacheEvictor cacheEvictor, IBookEventPublisher eventPublisher)
         {
             this.unitOfWork = unitOfWork;
             this.cacheEvictor = cacheEvictor;
+            this.eventPublisher = eventPublisher;
         }
 
         /// <summary>
@@ -59,17 +66,6 @@ namespace RabbitHoleService.Services
         }
 
         /// <summary>
-        /// Gets the maximum last modified date of all books.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The maximum last modified date.</returns>
-        public async Task<DateTimeOffset> GetMaxLastModifiedAsync(CancellationToken cancellationToken = default)
-        {
-            var maxLastModified = await this.unitOfWork.CachedBooks.GetMaxLastModifiedAsync(cancellationToken);
-            return maxLastModified;
-        }
-
-        /// <summary>
         /// Creates a new book.
         /// </summary>
         /// <param name="newBookData">The new book data.</param>
@@ -94,6 +90,12 @@ namespace RabbitHoleService.Services
             // Caching here is unnecessary overhead since it may not be fetched for a long time.
             // It would just be cache pollution and would push out frequently accessed books from cache.
             var createdBook = await this.unitOfWork.Books.GetAsync(bookToCreate.Id, cancellationToken: cancellationToken);
+
+            // Publish to recommendation service.
+            var bookAddedData = new BooksAddedData(createdBook!.Isbn, createdBook.Name, createdBook.BookGenres.Select(g => g.GenreId).ToList());
+            var bookAddedEvent = new BooksAddedEvent([bookAddedData]);
+            await this.eventPublisher.PublishAsync(bookAddedEvent);
+
             return BookModelDtoMapper.ToDto(createdBook!);
         }
 
@@ -139,6 +141,15 @@ namespace RabbitHoleService.Services
             await this.cacheEvictor.InvalidateCacheCollections(cancellationToken);
             var createdBookIds = booksToCreate.Select(b => b.Id).ToHashSet();
             var createdBooks = await this.unitOfWork.Books.GetAsync(createdBookIds, cancellationToken: cancellationToken);
+
+            // Publish to recommendation service.
+            var bookAddedData = createdBooks.Select(createdBook => new BooksAddedData(
+                createdBook.Isbn,
+                createdBook.Name,
+                createdBook.BookGenres.Select(g => g.GenreId).ToList())).ToList();
+            var bookAddedEvent = new BooksAddedEvent(bookAddedData);
+            await this.eventPublisher.PublishAsync(bookAddedEvent);
+
             return createdBooks.Select(BookModelDtoMapper.ToDto).ToList();
         }
 
@@ -167,6 +178,11 @@ namespace RabbitHoleService.Services
             book.UpdateBookProperties(updateData.Name, updateData.Author, updateData.Cost, updateData.Stock, updateData.GenreIds);
             await this.unitOfWork.SaveChangesAsync(cancellationToken);
             await this.cacheEvictor.InvalidateCacheForBooks([book], cancellationToken);
+
+            // Publish to recommendation service.
+            var bookUpdatedData = new BooksUpdatedData(book.Isbn, book.Name, book.BookGenres.Select(g => g.GenreId).ToList());
+            var bookUpdatedEvent = new BooksUpdatedEvent([bookUpdatedData]);
+            await this.eventPublisher.PublishAsync(bookUpdatedEvent);
         }
 
         /// <summary>
@@ -216,6 +232,14 @@ namespace RabbitHoleService.Services
 
             await this.unitOfWork.SaveChangesAsync(cancellationToken);
             await this.cacheEvictor.InvalidateCacheForBooks(books, cancellationToken);
+
+            // Publish to recommendation service.
+            var bookUpdatedData = books.Select(book => new BooksUpdatedData(
+                book!.Isbn,
+                book.Name,
+                book.BookGenres.Select(g => g.GenreId).ToList())).ToList();
+            var bookUpdatedEvent = new BooksUpdatedEvent(bookUpdatedData);
+            await this.eventPublisher.PublishAsync(bookUpdatedEvent);
         }
 
         /// <summary>
@@ -241,6 +265,9 @@ namespace RabbitHoleService.Services
             await this.unitOfWork.SaveChangesAsync(cancellationToken);
             await this.cacheEvictor.InvalidateCacheForBooks([book], cancellationToken);
 
+            // Publish to recommendation service.
+            var bookDeletedEvent = new BookDeletedEvent(book.Isbn);
+            await this.eventPublisher.PublishAsync(bookDeletedEvent);
         }
 
         /// <summary>

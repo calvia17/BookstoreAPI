@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Azure.Messaging.ServiceBus;
+using Azure.Storage.Blobs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -172,6 +174,13 @@ builder.Services.AddScoped<IGenreRepository>(sp =>
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<IRecommendationRequestRepository, RecommendationRequestRepository>();
+builder.Services.AddScoped<IBookEventPublisher, BookEventPublisher>();
+builder.Services.AddHostedService<RecommendationResultListener>();
+builder.Services.AddHostedService<RecommendationRequestCleanupService>();
+builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
@@ -183,6 +192,22 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
+});
+
+var serviceBusConnectionString = builder.Configuration["ServiceBus:ConnectionString"];
+var processQueueName = builder.Configuration["ServiceBus:ProcessQueueName"];
+var publishQueueName = builder.Configuration["ServiceBus:PublishQueueName"];
+var blobStorageConnectionString = builder.Configuration["BlobStorage:ConnectionString"];
+var shelfImageContainer = builder.Configuration["BlobStorage:ShelfImageContainer"];
+
+builder.Services.AddSingleton(new ServiceBusClient(serviceBusConnectionString));
+builder.Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<ServiceBusClient>().CreateSender(processQueueName));
+builder.Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<ServiceBusClient>().CreateProcessor(publishQueueName));
+builder.Services.AddSingleton<IBookEventPublisher, BookEventPublisher>();
+builder.Services.AddSingleton(serviceProvider =>
+{
+    var blobServiceClient = new BlobServiceClient(blobStorageConnectionString);
+    return blobServiceClient.GetBlobContainerClient(shelfImageContainer);
 });
 
 var app = builder.Build();

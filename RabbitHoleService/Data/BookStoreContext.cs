@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using RabbitHoleService.Objects;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore.SqlServer;
 
 namespace RabbitHoleService.Models
 {
@@ -10,6 +11,10 @@ namespace RabbitHoleService.Models
     /// </summary>
     public partial class BookStoreContext : IdentityDbContext<ApplicationUser>
     {
+        /// <summary>
+        /// Initializes the book store context.
+        /// </summary>
+        /// <param name="options">The options for the context.</param>
         public BookStoreContext(DbContextOptions<BookStoreContext> options)
         : base(options)
         {
@@ -44,6 +49,11 @@ namespace RabbitHoleService.Models
         /// Gets or sets the refresh tokens.
         /// </summary>
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+
+        /// <summary>
+        /// Gets or sets the recommendation requests.
+        /// </summary>
+        public DbSet<RecommendationRequest> RecommendationRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -115,13 +125,20 @@ namespace RabbitHoleService.Models
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.FamilyId).IsRequired();
             modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.FamilyId).HasDatabaseName("RefreshTokens_FamilyId");
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.JwtId).IsRequired();
-             modelBuilder.Entity<RefreshToken>().Property(rt => rt.JwtExpiry).IsRequired();
+            modelBuilder.Entity<RefreshToken>().Property(rt => rt.JwtExpiry).IsRequired();
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.Token).HasMaxLength(64).IsRequired().UseCollation("Latin1_General_CS_AS");
             modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.Token).IsUnique().HasDatabaseName("RefreshTokens_Token");
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.ExpiryDate).IsRequired();
             modelBuilder.Entity<RefreshToken>().HasOne(rt => rt.User).WithMany().HasForeignKey(rt => rt.UserId).IsRequired();
             modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.UserId);
             modelBuilder.Entity<RefreshToken>().Property(rt => rt.IsUsed).IsRequired();
+
+            modelBuilder.Entity<RecommendationRequest>().HasKey(rr => rr.CorrelationId);
+            modelBuilder.Entity<RecommendationRequest>().Property(rr => rr.Status).IsRequired();
+            modelBuilder.Entity<RecommendationRequest>().Property(rr => rr.ExtractedIsbnsJson).IsRequired(false);
+            modelBuilder.Entity<RecommendationRequest>().Property(rr => rr.ResultJson).IsRequired(false);
+            modelBuilder.Entity<RecommendationRequest>().Property(rr => rr.Error).IsRequired(false);
+            modelBuilder.Entity<RecommendationRequest>().Property(rr => rr.RequestedAt).IsRequired();
 
             // Seed the genre data from enum GenreType
             var genreSeeds = Enum.GetValues(typeof(GenreType))

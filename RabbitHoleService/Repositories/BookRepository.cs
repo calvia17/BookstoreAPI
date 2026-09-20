@@ -110,20 +110,6 @@ namespace RabbitHoleService.Repositories
         }
 
         /// <summary>
-        /// Gets the maximum last modified date of all books.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The maximum last modified date.</returns>
-        public async Task<DateTimeOffset> GetMaxLastModifiedAsync(CancellationToken cancellationToken = default)
-        {
-            var maxLastModified = await this.context.Books
-                .AsNoTracking()
-                .Where(b => !b.IsDeleted)
-                .MaxAsync(b => (DateTimeOffset?)b.LastModified, cancellationToken);
-            return maxLastModified ?? DateTimeOffset.MinValue;
-        }
-
-        /// <summary>
         /// Creates a new book.
         /// </summary>
         /// <param name="newBookData">The new book data.</param>

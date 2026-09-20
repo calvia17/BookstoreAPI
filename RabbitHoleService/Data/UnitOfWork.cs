@@ -48,17 +48,24 @@ namespace RabbitHoleService.Data
         public IRefreshTokenRepository RefreshTokens { get; }
 
         /// <summary>
+        /// The recommendation requests.
+        /// </summary>
+        public IRecommendationRequestRepository RecommendationRequests { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="UnitOfWork" /> class.
         /// </summary>
         /// <param name="context">The context.</param>
         /// <param name="cachedBooks">The cached book repository.</param>
         /// <param name="books">The book repository.</param>
+        /// <param name="cachedGenres">The cached genre repository.</param>
         /// <param name="genres">The genre repository.</param>
         /// <param name="customers">The customer repository.</param>
         /// <param name="staff">The staff.</param>
         /// <param name="orders">The order repository.</param>
         /// <param name="refreshTokens">The refresh token repository.</param>
-        public UnitOfWork(BookStoreContext context, ICachedBookRepository cachedBooks, IBookRepository books, IGenreRepository cachedGenres, IGenreRepository genres, IPersonRepository<Customer> customers, IPersonRepository<Staff> staff, IOrderRepository orders, IRefreshTokenRepository refreshTokens)
+        /// <param name="recommendationRequests">The recommendation request repository.</param>
+        public UnitOfWork(BookStoreContext context, ICachedBookRepository cachedBooks, IBookRepository books, IGenreRepository cachedGenres, IGenreRepository genres, IPersonRepository<Customer> customers, IPersonRepository<Staff> staff, IOrderRepository orders, IRefreshTokenRepository refreshTokens, IRecommendationRequestRepository recommendationRequests)
         {
             this.context = context;
             this.CachedBooks = cachedBooks;
@@ -68,6 +75,7 @@ namespace RabbitHoleService.Data
             this.Staff = staff;
             this.Orders = orders;
             this.RefreshTokens = refreshTokens;
+            this.RecommendationRequests = recommendationRequests;
         }
 
         /// <summary>
