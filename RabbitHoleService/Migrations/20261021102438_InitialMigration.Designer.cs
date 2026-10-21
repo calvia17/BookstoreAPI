@@ -12,7 +12,7 @@ using RabbitHoleService.Models;
 namespace RabbitHoleService.Migrations
 {
     [DbContext(typeof(BookStoreContext))]
-    [Migration("20260919014718_InitialMigration")]
+    [Migration("20261021102438_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -441,6 +441,16 @@ namespace RabbitHoleService.Migrations
                         {
                             Id = 9,
                             Name = "Dystopian Fiction"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Name = "Manga"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Name = "Non Fiction"
                         });
                 });
 

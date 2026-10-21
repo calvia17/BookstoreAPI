@@ -92,7 +92,7 @@ namespace RabbitHoleService.Services
             var createdBook = await this.unitOfWork.Books.GetAsync(bookToCreate.Id, cancellationToken: cancellationToken);
 
             // Publish to recommendation service.
-            var bookAddedData = new BooksAddedData(createdBook!.Isbn, createdBook.Name, createdBook.BookGenres.Select(g => g.GenreId).ToList());
+            var bookAddedData = new BookDetails(createdBook!.Isbn, createdBook.Name, createdBook.Author);
             var bookAddedEvent = new BooksAddedEvent([bookAddedData]);
             await this.eventPublisher.PublishAsync(bookAddedEvent);
 
@@ -143,10 +143,10 @@ namespace RabbitHoleService.Services
             var createdBooks = await this.unitOfWork.Books.GetAsync(createdBookIds, cancellationToken: cancellationToken);
 
             // Publish to recommendation service.
-            var bookAddedData = createdBooks.Select(createdBook => new BooksAddedData(
+            var bookAddedData = createdBooks.Select(createdBook => new BookDetails(
                 createdBook.Isbn,
                 createdBook.Name,
-                createdBook.BookGenres.Select(g => g.GenreId).ToList())).ToList();
+                createdBook.Author)).ToList();
             var bookAddedEvent = new BooksAddedEvent(bookAddedData);
             await this.eventPublisher.PublishAsync(bookAddedEvent);
 
@@ -180,7 +180,7 @@ namespace RabbitHoleService.Services
             await this.cacheEvictor.InvalidateCacheForBooks([book], cancellationToken);
 
             // Publish to recommendation service.
-            var bookUpdatedData = new BooksUpdatedData(book.Isbn, book.Name, book.BookGenres.Select(g => g.GenreId).ToList());
+            var bookUpdatedData = new BookDetails(book.Isbn, book.Name, book.Author);
             var bookUpdatedEvent = new BooksUpdatedEvent([bookUpdatedData]);
             await this.eventPublisher.PublishAsync(bookUpdatedEvent);
         }
@@ -234,11 +234,8 @@ namespace RabbitHoleService.Services
             await this.cacheEvictor.InvalidateCacheForBooks(books, cancellationToken);
 
             // Publish to recommendation service.
-            var bookUpdatedData = books.Select(book => new BooksUpdatedData(
-                book!.Isbn,
-                book.Name,
-                book.BookGenres.Select(g => g.GenreId).ToList())).ToList();
-            var bookUpdatedEvent = new BooksUpdatedEvent(bookUpdatedData);
+            var booksUpdatedData = books.Select(book => new BookDetails(book.Isbn, book.Name, book.Author)).ToList();
+            var bookUpdatedEvent = new BooksUpdatedEvent(booksUpdatedData);
             await this.eventPublisher.PublishAsync(bookUpdatedEvent);
         }
 

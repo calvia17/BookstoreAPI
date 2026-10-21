@@ -1,6 +1,4 @@
-﻿using RabbitHoleService.Objects;
-
-namespace RabbitHoleService.Events
+﻿namespace RabbitHoleService.Events
 {
     /// <summary>
     /// The books added event.
@@ -10,21 +8,13 @@ namespace RabbitHoleService.Events
         /// <summary>
         /// The added books.
         /// </summary>
-        public List<BooksAddedData> AddedBooks { get; }
-
-        /// <summary>
-        /// The book record.
-        /// </summary>
-        /// <param name="Isbn">The isbn.</param>
-        /// <param name="Name">The name.</param>
-        /// <param name="Genres">The genres.</param>
-        public record BooksAddedData(string Isbn, string Name, List<GenreType> Genres);
+        public List<BookDetails> AddedBooks { get; }
 
         /// <summary>
         /// Initializes the book added event.
         /// </summary>
         /// <param name="addedBooks">The added books.</param>
-        public BooksAddedEvent(List<BooksAddedData> addedBooks)
+        public BooksAddedEvent(List<BookDetails> addedBooks)
         {
             this.AddedBooks = addedBooks;
         }

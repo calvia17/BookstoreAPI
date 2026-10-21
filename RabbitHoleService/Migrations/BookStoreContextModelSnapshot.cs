@@ -438,6 +438,16 @@ namespace RabbitHoleService.Migrations
                         {
                             Id = 9,
                             Name = "Dystopian Fiction"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Name = "Manga"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Name = "Non Fiction"
                         });
                 });
 

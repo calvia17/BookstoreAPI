@@ -361,7 +361,9 @@ namespace RabbitHoleService.Migrations
                     { 6, "Action" },
                     { 7, "Adventure" },
                     { 8, "Psychological Thriller" },
-                    { 9, "Dystopian Fiction" }
+                    { 9, "Dystopian Fiction" },
+                    { 10, "Manga" },
+                    { 11, "Non Fiction" }
                 });
 
             migrationBuilder.CreateIndex(

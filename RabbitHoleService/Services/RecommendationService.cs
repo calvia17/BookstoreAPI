@@ -42,7 +42,7 @@ namespace RabbitHoleService.Services
         /// <returns>The recommendation request.</returns>
         public async Task<RecommendationRequestDto> RequestRecommendationsAsync(IFormFile image, CancellationToken cancellationToken)
         {
-            await ValidateImage(image);
+            await ValidateImage(image, cancellationToken);
 
             // Create a new recommendation request and save it to the database.
             var recommendationRequest = new RecommendationRequest();
@@ -138,7 +138,7 @@ namespace RabbitHoleService.Services
             }
         }
 
-        private static async Task ValidateImage(IFormFile image)
+        private static async Task ValidateImage(IFormFile image, CancellationToken cancellationToken)
         {
             if (image == null)
             {
@@ -160,13 +160,20 @@ namespace RabbitHoleService.Services
                 throw new InvalidImageException("Invalid file format. Only JPEG, JPG, and PNG are allowed.");
             }
 
-            var imageInfo = await Image.IdentifyAsync(image.OpenReadStream());
-            if (imageInfo == null
-                || imageInfo.Width == 0
-                || imageInfo.Height == 0
-                || imageInfo.Metadata == null
-                || imageInfo.Metadata.DecodedImageFormat == null
-                || !AllowedImageFormats.Contains($".{imageInfo.Metadata.DecodedImageFormat.Name.ToLower()}"))
+            try
+            {
+                var imageInfo = await Image.IdentifyAsync(image.OpenReadStream(), cancellationToken);
+                if (imageInfo == null
+                    || imageInfo.Width == 0
+                    || imageInfo.Height == 0
+                    || imageInfo.Metadata == null
+                    || imageInfo.Metadata.DecodedImageFormat == null
+                    || !AllowedImageFormats.Contains($".{imageInfo.Metadata.DecodedImageFormat.Name.ToLower()}"))
+                {
+                    throw new InvalidImageException("Invalid image file");
+                }
+            }
+            catch (Exception ex) when(ex is InvalidImageContentException or UnknownImageFormatException)
             {
                 throw new InvalidImageException("Invalid image file");
             }

@@ -7,8 +7,8 @@ namespace RabbitHoleService.Events
     /// </summary>
     [JsonPolymorphic(TypeDiscriminatorPropertyName = "eventType")]
     [JsonDerivedType(typeof(BooksAddedEvent), "Added")]
-    [JsonDerivedType(typeof(BooksUpdatedEvent), "Updated")]
     [JsonDerivedType(typeof(BookDeletedEvent), "Deleted")]
+    [JsonDerivedType(typeof(BooksUpdatedEvent), "Updated")]
     [JsonDerivedType(typeof(RecommendationsRequestedEvent), "RecommendationsRequested")]
     public abstract class BookEvent
     {

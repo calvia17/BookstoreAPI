@@ -54,6 +54,16 @@
         /// Dystopian fiction genre.
         /// </summary>
         DystopianFiction = 9,
+
+        /// <summary>
+        /// Manga genre.
+        /// </summary>
+        Manga = 10,
+
+        /// <summary>
+        /// Non-fiction
+        /// </summary>
+        NonFiction = 11,
     }
 }
 

@@ -118,14 +118,14 @@ builder.Services.AddRateLimitPolicies(builder.Configuration);
 builder.Services.AddStackExchangeRedisOutputCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "output:";
+    options.InstanceName = "main:output:";
 });
 
 // Configure Redis for L2 caching in HybridCache
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "hybrid:";
+    options.InstanceName = "main:hybrid:";
 });
 
 builder.Services.AddOutputCache(options =>
