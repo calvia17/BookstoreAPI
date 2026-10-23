@@ -1,4 +1,4 @@
-﻿using RabbitHoleService.Dtos;
+﻿using RabbitHoleService.Dtos.Recommendations;
 
 namespace RabbitHoleService.Services
 {

@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using RabbitHoleService.Data;
-using RabbitHoleService.Dtos;
-using RabbitHoleService.Exceptions;
+using RabbitHoleService.Dtos.Persons;
+using RabbitHoleService.Dtos.Staff;
+using RabbitHoleService.Exceptions.Persons;
 using RabbitHoleService.Mappers;
 using RabbitHoleService.Objects;
 

@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.RateLimiting;
-using RabbitHoleService.Dtos;
-using RabbitHoleService.Exceptions;
+using RabbitHoleService.Dtos.Books;
+using RabbitHoleService.Exceptions.Books;
 using RabbitHoleService.Services;
 
 namespace RabbitHoleService.Controllers

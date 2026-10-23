@@ -1,4 +1,4 @@
-﻿using RabbitHoleService.Dtos;
+﻿using RabbitHoleService.Dtos.Books;
 
 namespace RabbitHoleService.Services
 {

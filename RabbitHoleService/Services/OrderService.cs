@@ -1,6 +1,8 @@
 ﻿using RabbitHoleService.Data;
-using RabbitHoleService.Dtos;
-using RabbitHoleService.Exceptions;
+using RabbitHoleService.Dtos.Orders;
+using RabbitHoleService.Exceptions.Books;
+using RabbitHoleService.Exceptions.Orders;
+using RabbitHoleService.Exceptions.Persons;
 using RabbitHoleService.Mappers;
 using RabbitHoleService.Objects;
 

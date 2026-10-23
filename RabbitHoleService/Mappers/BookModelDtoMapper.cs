@@ -1,4 +1,5 @@
-﻿using RabbitHoleService.Dtos;
+﻿using RabbitHoleService.Dtos.Books;
+using RabbitHoleService.Dtos.Genres;
 using RabbitHoleService.Objects;
 
 namespace RabbitHoleService.Mappers

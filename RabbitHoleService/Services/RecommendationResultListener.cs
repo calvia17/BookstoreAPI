@@ -1,5 +1,5 @@
 ﻿using Azure.Messaging.ServiceBus;
-using RabbitHoleService.Dtos;
+using RabbitHoleService.Dtos.Recommendations;
 using System.Text.Json;
 
 namespace RabbitHoleService.Services

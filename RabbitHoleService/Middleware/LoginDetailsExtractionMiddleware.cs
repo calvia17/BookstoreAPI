@@ -1,4 +1,4 @@
-﻿using RabbitHoleService.Dtos;
+﻿using RabbitHoleService.Dtos.Auth;
 using System.Text.Json;
 
 namespace RabbitHoleService.Middleware

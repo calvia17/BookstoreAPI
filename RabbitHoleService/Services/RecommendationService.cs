@@ -1,5 +1,5 @@
 ﻿using RabbitHoleService.Data;
-using RabbitHoleService.Dtos;
+using RabbitHoleService.Dtos.Recommendations;
 using RabbitHoleService.Events;
 using RabbitHoleService.Exceptions;
 using RabbitHoleService.Exceptions.Recommendations;
@@ -119,8 +119,8 @@ namespace RabbitHoleService.Services
 
             try
             {
-                var extractedBooks = JsonSerializer.Deserialize<List<BookMessageDto>>(recommendationRequest.ExtractedIsbnsJson!);
-                var recommendedBooksResult = JsonSerializer.Deserialize<List<BookMessageDto>>(recommendationRequest.ResultJson!);
+                var extractedBooks = JsonSerializer.Deserialize<List<ExtractedBookDto>>(recommendationRequest.ExtractedIsbnsJson!);
+                var recommendedBooksResult = JsonSerializer.Deserialize<List<RecommendedBookDto>>(recommendationRequest.ResultJson!);
                 var recommendedIsbns = recommendedBooksResult?.Select(b => b.Isbn).ToHashSet() ?? [];
                 var recommendedBooks = await this.unitOfWork.Books.GetByIsbnsAsync(recommendedIsbns, cancellationToken);
                 var recommendedBookDtos = recommendedBooks.Select(BookModelDtoMapper.ToDto).ToList();

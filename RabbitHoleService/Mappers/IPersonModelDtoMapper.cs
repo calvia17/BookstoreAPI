@@ -1,7 +1,4 @@
-﻿using RabbitHoleService.Dtos;
-using RabbitHoleService.Objects;
-
-namespace RabbitHoleService.Mappers
+﻿namespace RabbitHoleService.Mappers
 {
     /// <summary>
     /// The person model dto mapper interface.

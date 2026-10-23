@@ -2,6 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using RabbitHoleService.Data;
 using RabbitHoleService.Dtos;
+using RabbitHoleService.Dtos.Auth;
 using RabbitHoleService.Objects;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

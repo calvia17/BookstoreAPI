@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using NuGet.Protocol.Core.Types;
 using RabbitHoleService.Data;
-using RabbitHoleService.Dtos;
+using RabbitHoleService.Dtos.Auth;
+using RabbitHoleService.Dtos.Persons;
 using RabbitHoleService.Exceptions;
+using RabbitHoleService.Exceptions.Auth;
+using RabbitHoleService.Exceptions.Persons;
 using RabbitHoleService.Mappers;
 using RabbitHoleService.Objects;
 using RabbitHoleService.Repositories;

@@ -1,11 +1,8 @@
 ﻿using RabbitHoleService.Data;
-using RabbitHoleService.Dtos;
+using RabbitHoleService.Dtos.Books;
 using RabbitHoleService.Events;
-using RabbitHoleService.Exceptions;
+using RabbitHoleService.Exceptions.Books;
 using RabbitHoleService.Mappers;
-using RabbitHoleService.Objects;
-using static RabbitHoleService.Events.BooksAddedEvent;
-using static RabbitHoleService.Events.BooksUpdatedEvent;
 
 namespace RabbitHoleService.Services
 {

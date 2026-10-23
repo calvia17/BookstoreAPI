@@ -1,4 +1,6 @@
-﻿using RabbitHoleService.Dtos;
+﻿using RabbitHoleService.Dtos.Auth;
+using RabbitHoleService.Dtos.Customers;
+using RabbitHoleService.Dtos.Persons;
 using RabbitHoleService.Objects;
 
 namespace RabbitHoleService.Services

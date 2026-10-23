@@ -1,4 +1,4 @@
-﻿using RabbitHoleService.Dtos;
+﻿using RabbitHoleService.Dtos.Staff;
 using RabbitHoleService.Objects;
 
 namespace RabbitHoleService.Mappers

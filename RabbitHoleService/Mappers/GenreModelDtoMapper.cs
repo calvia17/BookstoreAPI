@@ -1,6 +1,5 @@
-﻿using RabbitHoleService.Dtos;
+﻿using RabbitHoleService.Dtos.Genres;
 using RabbitHoleService.Objects;
-using System.Text.RegularExpressions;
 
 namespace RabbitHoleService.Mappers
 {

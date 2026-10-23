@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using RabbitHoleService.Dtos;
-using RabbitHoleService.Exceptions;
+using RabbitHoleService.Dtos.Auth;
+using RabbitHoleService.Dtos.Persons;
+using RabbitHoleService.Dtos.Staff;
+using RabbitHoleService.Exceptions.Auth;
+using RabbitHoleService.Exceptions.Persons;
 using RabbitHoleService.Objects;
 using RabbitHoleService.Services;
 using System.Security.Claims;

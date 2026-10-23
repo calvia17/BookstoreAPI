@@ -1,5 +1,5 @@
 ﻿using RabbitHoleService.Data;
-using RabbitHoleService.Dtos;
+using RabbitHoleService.Dtos.Genres;
 using RabbitHoleService.Mappers;
 
 namespace RabbitHoleService.Services

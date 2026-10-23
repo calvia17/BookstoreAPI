@@ -1,4 +1,4 @@
-﻿using RabbitHoleService.Dtos;
+﻿using RabbitHoleService.Dtos.Genres;
 using RabbitHoleService.Objects;
 
 namespace RabbitHoleService.Services
