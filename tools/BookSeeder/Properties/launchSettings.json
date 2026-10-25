@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "BookSeeder": {
+      "commandName": "Project",
+      "commandLineArgs": "pull"
+    }
+  }
+}

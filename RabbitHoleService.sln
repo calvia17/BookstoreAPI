@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.9.34902.65
+# Visual Studio Version 18
+VisualStudioVersion = 18.8.12009.203 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitHoleService", "RabbitHoleService\RabbitHoleService.csproj", "{D0666655-53CD-4B6E-8E04-23F797B01401}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookSeeder", "tools\BookSeeder\BookSeeder.csproj", "{4163DA50-A419-F1E6-18BE-D46E8EAF5A3D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{D0666655-53CD-4B6E-8E04-23F797B01401}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D0666655-53CD-4B6E-8E04-23F797B01401}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0666655-53CD-4B6E-8E04-23F797B01401}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4163DA50-A419-F1E6-18BE-D46E8EAF5A3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4163DA50-A419-F1E6-18BE-D46E8EAF5A3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4163DA50-A419-F1E6-18BE-D46E8EAF5A3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4163DA50-A419-F1E6-18BE-D46E8EAF5A3D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
