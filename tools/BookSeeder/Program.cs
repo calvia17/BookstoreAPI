@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 public class Program
 {
@@ -56,19 +55,19 @@ public class Program
         var client = clientFactory.CreateClient("OpenLibrary");
         var genres = new Dictionary<string, (string Query, GenreType Genre)>
         {
-            // { "Fantasy", ("subject:fantasy", GenreType.Fantasy) },
-            // { "Romance", ("subject:romance", GenreType.Romance) },
-            // { "Mystery", ("subject:mystery", GenreType.Mystery) },
-            // { "Thriller", ("subject:thriller", GenreType.Thriller) },
-            // { "Sci-Fi", ("subject:science_fiction", GenreType.ScienceFiction) },
+            { "Fantasy", ("subject:fantasy", GenreType.Fantasy) },
+            { "Romance", ("subject:romance", GenreType.Romance) },
+            { "Mystery", ("subject:mystery", GenreType.Mystery) },
+            { "Thriller", ("subject:thriller", GenreType.Thriller) },
+            { "Sci-Fi", ("subject:science_fiction", GenreType.ScienceFiction) },
             { "Manga", ("subject:manga", GenreType.Manga) },
-            // { "Non-Fiction", ("subject:nonfiction", GenreType.NonFiction) }
+            { "Non-Fiction", ("subject:nonfiction", GenreType.NonFiction) }
         };
 
         var allDocs = new List<OpenLibraryBook>();
         foreach (var genre in genres)
         {
-            Console.WriteLine($"Fetching 300 {genre.Key} books...");
+            Console.WriteLine($"Fetching 50 {genre.Key} books...");
             var url = $"search.json?q={genre.Value.Query}&limit=300&fields=title,author_name,isbn";
 
             var response = await client.GetAsync(url);

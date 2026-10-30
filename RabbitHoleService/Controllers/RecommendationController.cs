@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿#if DEBUG
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using RabbitHoleService.Exceptions;
@@ -107,3 +108,4 @@ namespace RabbitHoleService.Controllers
         }
     }
 }
+#endif
