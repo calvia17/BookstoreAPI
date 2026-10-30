@@ -23,7 +23,7 @@ jobs:
         run: dotnet build --no-restore -c Release
  
       - name: Publish
-        run: dotnet publish -c Release -o ./publish
+        run: dotnet publish RabbitHoleService/RabbitHoleService.csproj -c Release -o ./publish
  
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
