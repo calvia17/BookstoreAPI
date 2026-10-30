@@ -5,7 +5,7 @@ using RabbitHoleService.Exceptions;
 using RabbitHoleService.Exceptions.Recommendations;
 using RabbitHoleService.Mappers;
 using RabbitHoleService.Objects;
-using SixLabors.ImageSharp;
+// using SixLabors.ImageSharp;
 using System.Text.Json;
 
 namespace RabbitHoleService.Services
@@ -160,23 +160,23 @@ namespace RabbitHoleService.Services
                 throw new InvalidImageException("Invalid file format. Only JPEG, JPG, and PNG are allowed.");
             }
 
-            try
-            {
-                var imageInfo = await Image.IdentifyAsync(image.OpenReadStream(), cancellationToken);
-                if (imageInfo == null
-                    || imageInfo.Width == 0
-                    || imageInfo.Height == 0
-                    || imageInfo.Metadata == null
-                    || imageInfo.Metadata.DecodedImageFormat == null
-                    || !AllowedImageFormats.Contains($".{imageInfo.Metadata.DecodedImageFormat.Name.ToLower()}"))
-                {
-                    throw new InvalidImageException("Invalid image file");
-                }
-            }
-            catch (Exception ex) when(ex is InvalidImageContentException or UnknownImageFormatException)
-            {
-                throw new InvalidImageException("Invalid image file");
-            }
+            //try
+            //{
+            //    var imageInfo = await Image.IdentifyAsync(image.OpenReadStream(), cancellationToken);
+            //    if (imageInfo == null
+            //        || imageInfo.Width == 0
+            //        || imageInfo.Height == 0
+            //        || imageInfo.Metadata == null
+            //        || imageInfo.Metadata.DecodedImageFormat == null
+            //        || !AllowedImageFormats.Contains($".{imageInfo.Metadata.DecodedImageFormat.Name.ToLower()}"))
+            //    {
+            //        throw new InvalidImageException("Invalid image file");
+            //    }
+            //}
+            //catch (Exception ex) when(ex is InvalidImageContentException or UnknownImageFormatException)
+            //{
+            //    throw new InvalidImageException("Invalid image file");
+            //}
         }
     }
 }
