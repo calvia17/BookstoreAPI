@@ -38,8 +38,8 @@ public class Program
         }
         else if (command == "seed")
         {
-            var adminEmail = builder.Configuration["Seed:AdminEmail"] ?? string.Empty;
-            var adminPassword = builder.Configuration["Seed:AdminPassword"] ?? string.Empty;
+            var adminEmail = builder.Configuration["Admin:Email"] ?? string.Empty;
+            var adminPassword = builder.Configuration["Admin:Password"] ?? string.Empty;
             await Seed(adminEmail, adminPassword);
         }
         else
