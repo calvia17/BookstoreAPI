@@ -143,7 +143,6 @@ builder.Services.AddHybridCache(options =>
 });
 
 builder.Services.AddScoped<ITokenCacheService, TokenCacheService>();
-builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 builder.Services.AddScoped<Seeder>();
 
@@ -177,13 +176,17 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IRecommendationRequestRepository, RecommendationRequestRepository>();
 builder.Services.AddScoped<IBookEventPublisher, BookEventPublisher>();
-builder.Services.AddHostedService<RecommendationResultListener>();
-builder.Services.AddHostedService<RecommendationRequestCleanupService>();
 builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+#if DEBUG
+builder.Services.AddHostedService<RecommendationResultListener>();
+builder.Services.AddHostedService<RecommendationRequestCleanupService>();
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
+#endif
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
