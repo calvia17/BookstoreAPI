@@ -162,3 +162,4 @@ Companion worker service (BookRecommendationService): https://github.com/calvia1
 ## Acknowledgements
 
 - The BookSeeder project uses the Open Library API to get sample books to seed into the database.
+- SixLabors ImageSharp is used for image processing, under a Six Labors license.
