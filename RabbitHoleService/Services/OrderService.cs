@@ -217,7 +217,7 @@ namespace RabbitHoleService.Services
             }
 
             // Check if all the books exist
-            var books = await this.unitOfWork.Books.GetAsync(bookIds, cancellationToken: cancellationToken);
+            var books = await this.unitOfWork.Books.GetAsync(bookIds, true, cancellationToken: cancellationToken);
             var notFoundBookIds = bookIds.Except(books.Select(x => x.Id)).ToList();
             if (notFoundBookIds.Count > 0)
             {

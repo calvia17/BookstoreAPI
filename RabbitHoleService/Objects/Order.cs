@@ -49,7 +49,7 @@ namespace RabbitHoleService.Objects
         /// <summary>
         /// Gets the book orders.
         /// </summary>
-        public ICollection<BookOrder> BookOrders { get; } = null!;
+        public ICollection<BookOrder> BookOrders { get; set; } = null!;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Order" /> class.

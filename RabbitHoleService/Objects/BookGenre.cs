@@ -34,6 +34,14 @@ namespace RabbitHoleService.Objects
         /// <summary>
         /// Initializes a new instance of the <see cref="BookGenre" /> class.
         /// </summary>
+        [JsonConstructor]
+        private BookGenre()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BookGenre" /> class.
+        /// </summary>
         /// <param name="bookId">The book id.</param>
         /// <param name="genreId">The genre id.</param>
         public BookGenre(Guid bookId, GenreType genreId)

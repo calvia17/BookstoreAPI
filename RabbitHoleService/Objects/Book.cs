@@ -67,7 +67,7 @@ namespace RabbitHoleService.Objects
         /// <summary>
         /// Gets the book genres.
         /// </summary>
-        public ICollection<BookGenre> BookGenres { get; } = null!;
+        public ICollection<BookGenre> BookGenres { get; set; } = null!;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Book" /> class.

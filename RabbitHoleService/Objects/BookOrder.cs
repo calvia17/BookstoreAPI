@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace RabbitHoleService.Objects
 {
@@ -27,6 +28,7 @@ namespace RabbitHoleService.Objects
         /// <summary>
         /// Gets or sets the order.
         /// </summary>
+        [JsonIgnore]
         public Order Order { get; set; } = null!;
 
         /// <summary>
@@ -40,6 +42,14 @@ namespace RabbitHoleService.Objects
         /// </summary>
         [Required]
         public decimal PriceAtPurchase { get; set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BookOrder" /> class.
+        /// </summary>
+        [JsonConstructor]
+        private BookOrder()
+        {
+        }
 
         /// <summary>
         /// Initializes and instance of BookOrder.
